@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: kariya-interview-mock
+server:
+  port: 9999
