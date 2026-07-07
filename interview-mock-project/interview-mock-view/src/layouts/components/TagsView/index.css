@@ -1,0 +1,10 @@
+.tags-view {
+  height: 40px;
+  padding: 4px 16px 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e8eef7;
+}
+
+.tags-view .ant-tabs-nav {
+  margin-bottom: 0;
+}

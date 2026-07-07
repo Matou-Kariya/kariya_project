@@ -1,5 +1,12 @@
 import axios from "axios";
-import { message } from "antd";
+import { message } from "@/services/antd";
+import { getAccessToken, clearAuthTokens } from "./authStorage";
+
+export type Result<T> = {
+  code: number;
+  message: string;
+  data: T;
+};
 
 const request = axios.create({
   baseURL: "/api",
@@ -9,9 +16,9 @@ const request = axios.create({
 // 请求拦截器：添加 Token
 request.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const accessToken = getAccessToken();
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
@@ -21,21 +28,26 @@ request.interceptors.request.use(
 // 响应拦截器：统一错误处理
 request.interceptors.response.use(
   (response) => {
-    const { data } = response;
-    // 假设后端统一返回 { code: 0, data: ..., message: ... }
-    if (data.code === 0) {
-      return data.data;
+    const contentType = response.headers["content-type"] || "";
+
+    if (response.config.responseType === "blob" || response.config.responseType === "arraybuffer" || contentType.includes("application/octet-stream")) {
+      return response.data;
     }
-    // 登录过期
-    if (data.code === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("userInfo");
+
+    const result = response.data as Result<unknown>;
+
+    if (result.code === 0) {
+      return result.data;
+    }
+
+    if (result.code === 401) {
+      clearAuthTokens();
       window.location.href = "/login";
-      message.error("登录已过期，请重新登录");
-      return Promise.reject(new Error(data.message));
+      return Promise.reject(new Error(result.message));
     }
-    message.error(data.message || "请求失败");
-    return Promise.reject(new Error(data.message));
+
+    message.error(result.message || "请求失败");
+    return Promise.reject(new Error(result.message || "请求失败"));
   },
   (error) => {
     message.error(error.message || "网络错误");

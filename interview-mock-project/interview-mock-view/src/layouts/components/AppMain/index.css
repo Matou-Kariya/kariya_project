@@ -1,0 +1,8 @@
+.app-main {
+  margin: 16px;
+  padding: 20px;
+  min-height: calc(100vh - 136px);
+  background: #ffffff;
+  border-radius: 8px;
+  overflow: auto;
+}

@@ -76,3 +76,5 @@ __pycache__/
 **/mvnw.cmd
 **/mvnw
 **/chroma_db
+
+*.password

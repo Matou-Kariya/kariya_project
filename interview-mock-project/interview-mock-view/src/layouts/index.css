@@ -1,0 +1,9 @@
+.basic-layout {
+  min-height: 100vh;
+  background: #eef5ff;
+}
+
+.basic-layout__right {
+  min-width: 0;
+  background: #eef5ff;
+}

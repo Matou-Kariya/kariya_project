@@ -1,7 +1,39 @@
 import { WechatOutlined } from "@ant-design/icons";
 import "./index.css";
+import { loginApi } from "@/api/auth";
+import { saveAuthTokens } from "@/utils/authStorage";
+import { useNavigate } from "react-router-dom";
+import type { ComponentProps } from "react";
+
+import { useDispatch } from "react-redux";
+import { getUserMenusApi } from "@/api/menu";
+import { setToken, setUserInfo, setMenus } from "@/store/slices/userSlice";
 
 const Login = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const handleSubmit: ComponentProps<"form">["onSubmit"] = async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const username = String(formData.get("username") || "");
+    const password = String(formData.get("password") || "");
+    const rememberMe = formData.get("remember") === "on";
+
+    const res = await loginApi({ username, password, rememberMe });
+
+    saveAuthTokens(res.accessToken, res.refreshToken, rememberMe);
+
+    dispatch(setToken(res.accessToken));
+    dispatch(setUserInfo(res.userInfo));
+
+    const menus = await getUserMenusApi();
+    dispatch(setMenus(menus));
+
+    navigate("/dashboard", { replace: true });
+  };
+
   return (
     <main className="login-page">
       <section className="login-intro" aria-label="产品介绍">
@@ -40,7 +72,7 @@ const Login = () => {
             <span>或使用账号登录</span>
           </div>
 
-          <form className="login-form">
+          <form className="login-form" onSubmit={handleSubmit}>
             <label className="login-field">
               <span>账号</span>
               <input name="username" type="text" placeholder="请输入邮箱或用户名" autoComplete="username" />
@@ -61,7 +93,7 @@ const Login = () => {
               </button>
             </div>
 
-            <button className="login-submit" type="button">
+            <button className="login-submit" type="submit">
               登录
             </button>
           </form>

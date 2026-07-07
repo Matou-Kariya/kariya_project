@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { RequireAuth } from "./RequireAuth";
-import { BasicLayout } from "@/layouts/BasicLayout";
-import { DashboardRoute, LoginRoute, UserManagementRoute } from "./LazyRoutes";
+import { BasicLayout } from "@/layouts";
+import { DashboardRoute, LoginRoute } from "./LazyRoutes";
 
 export const router = createBrowserRouter([
   {
@@ -23,10 +23,7 @@ export const router = createBrowserRouter([
       {
         path: "dashboard",
         element: <DashboardRoute />,
-      },
-      {
-        path: "system/user",
-        element: <UserManagementRoute />,
+        handle: { title: "仪表盘" },
       },
     ],
   },

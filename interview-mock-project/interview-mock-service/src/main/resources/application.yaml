@@ -1,5 +1,52 @@
 spring:
   application:
     name: kariya-interview-mock
+
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://124.222.152.55:3308/db_kariya_admin?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      username: ENC(uO245059wMC186WqTgOBlr0xEba/XnqRXdS++boX8/d4rLNebrh95t5RPN/QocM7)
+      password: ENC(9eT0m3zGq7pR81ZqQnPx3CSzmACIa0wumMJjCogvQevl1YyPdbLWJDwsa/bIDN2E)
+
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+
+
+  data:
+    redis:
+      host: 124.222.152.55
+      port: 6381
+      database: 0
+      password: ENC(Z5ygT8W9Scn22RnNLZDayG4eArEfii0Bb3LLpJLFd+OKTOuQlFEPcVEQFiFgGE6t)
+      timeout: 3000ms
+      lettuce:
+        pool:
+          enabled: true
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 3000ms
+
 server:
   port: 9999
+
+
+jwt:
+  secret: kariya # replace-with-your-local-jwt-secret
+  access-token-expire-minutes: 15
+  refresh-token-expire-days: 7

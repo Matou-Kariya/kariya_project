@@ -1,0 +1,22 @@
+.navbar {
+  height: 64px;
+  padding: 0 24px 0 8px;
+  background: #ffffff;
+  border-bottom: 1px solid #e8eef7;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar__user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}

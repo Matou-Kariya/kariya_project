@@ -1,0 +1,19 @@
+.sidebar {
+  background: #ffffff !important;
+  border-right: 1px solid #e8eef7;
+}
+
+.sidebar__logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  color: #1677ff;
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sidebar__menu {
+  border-right: 0 !important;
+}
