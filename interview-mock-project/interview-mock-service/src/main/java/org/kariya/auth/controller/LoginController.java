@@ -1,22 +1,19 @@
 package org.kariya.auth.controller;
 
-import org.kariya.auth.entity.LoginRequest;
-import org.kariya.auth.entity.LoginResponse;
-import org.kariya.auth.entity.LogoutRequest;
-import org.kariya.auth.entity.RefreshTokenRequest;
+import lombok.RequiredArgsConstructor;
+import org.kariya.auth.entity.*;
 import org.kariya.auth.service.AuthService;
 import org.kariya.entity.Result;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class LoginController {
-    @Autowired
-    private AuthService authService;
+
+    private final AuthService authService;
 
     @PostMapping("/login")
     public Result<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
@@ -32,5 +29,10 @@ public class LoginController {
     public Result<Void> logout(@RequestBody LogoutRequest request) {
         authService.logout(request.accessToken(), request.refreshToken());
         return Result.success();
+    }
+
+    @GetMapping("/me")
+    public Result<UserInfo> me(@AuthenticationPrincipal LoginUser loginUser) {
+        return Result.success(new UserInfo(loginUser.getUserId(), loginUser.getUsername(), loginUser.getRoles()));
     }
 }

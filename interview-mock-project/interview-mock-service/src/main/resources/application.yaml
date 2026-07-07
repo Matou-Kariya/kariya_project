@@ -7,8 +7,8 @@ spring:
     druid:
       driver-class-name: com.mysql.cj.jdbc.Driver
       url: jdbc:mysql://124.222.152.55:3308/db_kariya_admin?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      username: ENC(uO245059wMC186WqTgOBlr0xEba/XnqRXdS++boX8/d4rLNebrh95t5RPN/QocM7)
-      password: ENC(9eT0m3zGq7pR81ZqQnPx3CSzmACIa0wumMJjCogvQevl1YyPdbLWJDwsa/bIDN2E)
+      username: ENC(zl2CNxlJlwDlMzsOXDsCusB8jKOLvDeMJqqonbDwP9Ez8kTtHxdqx5noJWfVf5r7)
+      password: ENC(qHmjHV4A41HYzWpW9VvsKhccl+awK5H/EJOVLbqULtJlrv1Fv4777RoOnfddyHK6)
 
       initial-size: 5
       min-idle: 5
@@ -32,7 +32,7 @@ spring:
       host: 124.222.152.55
       port: 6381
       database: 0
-      password: ENC(Z5ygT8W9Scn22RnNLZDayG4eArEfii0Bb3LLpJLFd+OKTOuQlFEPcVEQFiFgGE6t)
+      password: ENC(qBbHmK1FX4rBdxr1dPqyb/GcB7vrSwtORvRbvIJaXNfrzmtHuoyHSo+bDHxpCZdp)
       timeout: 3000ms
       lettuce:
         pool:
@@ -47,6 +47,10 @@ server:
 
 
 jwt:
-  secret: kariya # replace-with-your-local-jwt-secret
+  secret: ${JWT_SECRET:kariya-interview-mock-admin-jwt-secret} # replace-with-your-local-jwt-secret
   access-token-expire-minutes: 15
   refresh-token-expire-days: 7
+
+mybatis-plus:
+  global-config:
+    banner: false

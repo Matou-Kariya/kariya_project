@@ -6,7 +6,11 @@ import { TagsView } from "./components/TagsView";
 import { AppMain } from "./components/AppMain";
 import "./index.css";
 
-export function BasicLayout() {
+type BasicLayoutProps = {
+  fallback?: React.ReactNode;
+};
+
+export function BasicLayout({ fallback }: BasicLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -15,7 +19,7 @@ export function BasicLayout() {
       <Layout className="basic-layout__right">
         <Navbar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
         <TagsView />
-        <AppMain />
+        <AppMain>{fallback}</AppMain>
       </Layout>
     </Layout>
   );

@@ -16,9 +16,14 @@ const request = axios.create({
 // 请求拦截器：添加 Token
 request.interceptors.request.use(
   (config) => {
-    const accessToken = getAccessToken();
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    const publicUrls = ["/auth/login", "/auth/refresh"];
+    const isPublicRequest = publicUrls.some((url) => config.url?.includes(url));
+    if (!isPublicRequest) {
+      const accessToken = getAccessToken();
+
+      if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+      }
     }
     return config;
   },
@@ -28,7 +33,7 @@ request.interceptors.request.use(
 // 响应拦截器：统一错误处理
 request.interceptors.response.use(
   (response) => {
-    const contentType = response.headers["content-type"] || "";
+    const contentType = String(response.headers["content-type"] || "");
 
     if (response.config.responseType === "blob" || response.config.responseType === "arraybuffer" || contentType.includes("application/octet-stream")) {
       return response.data;

@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.List;
 
 @Component
 @ConfigurationProperties(prefix = "jwt")
@@ -26,53 +27,25 @@ public class JwtTokenUtil {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(Long userId, String username, String role, String jti) {
+    public String generateAccessToken(Long userId, String username, List<String> roles, String jti) {
         Date now = new Date();
-        Date expireAt = Date.from(
-                LocalDateTime.now()
-                        .plusMinutes(accessTokenExpireMinutes)
-                        .atZone(ZoneId.systemDefault())
-                        .toInstant()
-        );
+        Date expireAt = Date.from(LocalDateTime.now().plusMinutes(accessTokenExpireMinutes)
+                .atZone(ZoneId.systemDefault()).toInstant());
 
-        return Jwts.builder()
-                .id(jti)
-                .subject(String.valueOf(userId))
-                .claim("username", username)
-                .claim("role", role)
-                .claim("type", "access")
-                .issuedAt(now)
-                .expiration(expireAt)
-                .signWith(getSigningKey())
-                .compact();
+        return Jwts.builder().id(jti).subject(String.valueOf(userId)).claim("username", username).claim("role", roles)
+                .claim("type", "access").issuedAt(now).expiration(expireAt).signWith(getSigningKey()).compact();
     }
 
-    public String generateRefreshToken(Long userId, String username, String role, String jti, long expireMinutes) {
+    public String generateRefreshToken(Long userId, String username, List<String> roles, String jti, long expireMinutes) {
         Date now = new Date();
-        Date expireAt = Date.from(
-                LocalDateTime.now()
-                        .plusDays(expireMinutes)
-                        .atZone(ZoneId.systemDefault())
-                        .toInstant()
-        );
+        Date expireAt = Date.from(LocalDateTime.now().plusMinutes(expireMinutes).atZone(ZoneId.systemDefault())
+                .toInstant());
 
-        return Jwts.builder()
-                .id(jti)
-                .subject(String.valueOf(userId))
-                .claim("username", username)
-                .claim("role", role)
-                .claim("type", "refresh")
-                .issuedAt(now)
-                .expiration(expireAt)
-                .signWith(getSigningKey())
-                .compact();
+        return Jwts.builder().id(jti).subject(String.valueOf(userId)).claim("username", username).claim("role", roles)
+                .claim("type", "refresh").issuedAt(now).expiration(expireAt).signWith(getSigningKey()).compact();
     }
 
     public Claims parseToken(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        return Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
     }
 }

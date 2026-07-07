@@ -14,11 +14,9 @@ public class JasyptTest {
 
     @Test
     public void generateEncryptedData() {
-
-        String plainText = ""; // 你要加密的明文
+        String plainText = "root"; // 你要加密的明文
         String encryptedText = stringEncryptor.encrypt(plainText);
         System.out.println("加密后的密文: ENC(" + encryptedText + ")");
-
-
     }
+
 }

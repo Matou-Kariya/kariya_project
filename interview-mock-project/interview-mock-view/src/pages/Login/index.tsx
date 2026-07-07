@@ -1,9 +1,10 @@
-import { WechatOutlined } from "@ant-design/icons";
+import { EyeInvisibleOutlined, EyeOutlined, WechatOutlined } from "@ant-design/icons";
 import "./index.css";
 import { loginApi } from "@/api/auth";
-import { saveAuthTokens } from "@/utils/authStorage";
+import { saveAuthTokens, saveUserInfo } from "@/utils/authStorage";
 import { useNavigate } from "react-router-dom";
 import type { ComponentProps } from "react";
+import { useState } from "react";
 
 import { useDispatch } from "react-redux";
 import { getUserMenusApi } from "@/api/menu";
@@ -12,26 +13,44 @@ import { setToken, setUserInfo, setMenus } from "@/store/slices/userSlice";
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit: ComponentProps<"form">["onSubmit"] = async (event) => {
     event.preventDefault();
+    setLoginError("");
 
     const formData = new FormData(event.currentTarget);
     const username = String(formData.get("username") || "");
     const password = String(formData.get("password") || "");
     const rememberMe = formData.get("remember") === "on";
 
-    const res = await loginApi({ username, password, rememberMe });
+    let res;
+
+    try {
+      setSubmitting(true);
+      res = await loginApi({ username, password, rememberMe });
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : "登录失败，请稍后重试");
+      setSubmitting(false);
+      return;
+    }
 
     saveAuthTokens(res.accessToken, res.refreshToken, rememberMe);
+    saveUserInfo(res.userInfo);
 
     dispatch(setToken(res.accessToken));
     dispatch(setUserInfo(res.userInfo));
 
-    const menus = await getUserMenusApi();
-    dispatch(setMenus(menus));
+    try {
+      const menus = await getUserMenusApi();
+      dispatch(setMenus(menus));
 
-    navigate("/dashboard", { replace: true });
+      navigate("/dashboard", { replace: true });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -73,6 +92,12 @@ const Login = () => {
           </div>
 
           <form className="login-form" onSubmit={handleSubmit}>
+            {loginError ? (
+              <div className="login-error" role="alert">
+                {loginError}
+              </div>
+            ) : null}
+
             <label className="login-field">
               <span>账号</span>
               <input name="username" type="text" placeholder="请输入邮箱或用户名" autoComplete="username" />
@@ -80,7 +105,12 @@ const Login = () => {
 
             <label className="login-field">
               <span>密码</span>
-              <input name="password" type="password" placeholder="请输入密码" autoComplete="current-password" />
+              <div className="password-input">
+                <input name="password" type={showPassword ? "text" : "password"} placeholder="请输入密码" autoComplete="current-password" />
+                <button className="password-toggle" type="button" aria-label={showPassword ? "隐藏密码" : "显示密码"} onClick={() => setShowPassword((visible) => !visible)}>
+                  {showPassword ? <EyeInvisibleOutlined aria-hidden="true" /> : <EyeOutlined aria-hidden="true" />}
+                </button>
+              </div>
             </label>
 
             <div className="login-options">
@@ -93,8 +123,17 @@ const Login = () => {
               </button>
             </div>
 
-            <button className="login-submit" type="submit">
-              登录
+            <button className="login-submit" type="submit" disabled={submitting}>
+              {submitting ? (
+                <span className="login-submit__loading">
+                  <i />
+                  <i />
+                  <i />
+                  正在登录
+                </span>
+              ) : (
+                "登录"
+              )}
             </button>
           </form>
 

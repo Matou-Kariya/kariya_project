@@ -1,4 +1,5 @@
-import request from "@/utils/request";
+import axios from "axios";
+import request, { type Result } from "@/utils/request";
 
 export type LoginParams = {
   username: string;
@@ -9,7 +10,7 @@ export type LoginParams = {
 export type UserInfo = {
   userId: number;
   username: string;
-  role: string;
+  roles: string[];
 };
 
 export type LoginResponse = {
@@ -19,11 +20,23 @@ export type LoginResponse = {
 };
 
 export function loginApi(data: LoginParams) {
-  return request.post<LoginResponse, LoginResponse>("/auth/login", data);
+  return axios.post<Result<LoginResponse>>("/api/auth/login", data).then((response) => {
+    const result = response.data;
+
+    if (result.code === 0) {
+      return result.data;
+    }
+
+    return Promise.reject(new Error(result.message || "登录失败"));
+  });
 }
 
 export function refreshTokenApi(refreshToken: string) {
-  return request.post("/auth/refresh", { refreshToken });
+  return request.post<LoginResponse, LoginResponse>("/auth/refresh", { refreshToken });
+}
+
+export function getCurrentUserApi() {
+  return request.get<UserInfo, UserInfo>("/auth/me");
 }
 
 export function logoutApi(accessToken: string, refreshToken: string) {

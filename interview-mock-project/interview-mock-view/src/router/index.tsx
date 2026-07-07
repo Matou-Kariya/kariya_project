@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { RequireAuth } from "./RequireAuth";
 import { BasicLayout } from "@/layouts";
 import { DashboardRoute, LoginRoute } from "./LazyRoutes";
+import { LayoutLoading } from "@/components/LayoutLoading";
 
 export const router = createBrowserRouter([
   {
@@ -11,7 +12,7 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: (
-      <RequireAuth>
+      <RequireAuth loading={<BasicLayout fallback={<LayoutLoading text="正在恢复工作台" variant="content" />} />}>
         <BasicLayout />
       </RequireAuth>
     ),
