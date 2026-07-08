@@ -1,7 +1,7 @@
 import { EyeInvisibleOutlined, EyeOutlined, WechatOutlined } from "@ant-design/icons";
 import "./index.css";
 import { loginApi } from "@/api/auth";
-import { saveAuthTokens, saveUserInfo } from "@/utils/authStorage";
+import { saveAccessToken, saveUserInfo } from "@/utils/authStorage";
 import { useNavigate } from "react-router-dom";
 import type { ComponentProps } from "react";
 import { useState } from "react";
@@ -37,7 +37,7 @@ const Login = () => {
       return;
     }
 
-    saveAuthTokens(res.accessToken, res.refreshToken, rememberMe);
+    saveAccessToken(res.accessToken);
     saveUserInfo(res.userInfo);
 
     dispatch(setToken(res.accessToken));

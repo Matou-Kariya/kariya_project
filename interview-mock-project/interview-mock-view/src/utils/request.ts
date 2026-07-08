@@ -7,10 +7,26 @@ export type Result<T> = {
   message: string;
   data: T;
 };
+let unauthorizedHandled = false;
+
+function handleUnauthorized() {
+  if (unauthorizedHandled) return;
+
+  unauthorizedHandled = true;
+
+  clearAuthTokens();
+
+  message.warning("登录已过期，请重新登录");
+
+  setTimeout(() => {
+    window.location.href = "/login";
+  }, 800);
+}
 
 const request = axios.create({
   baseURL: "/api",
   timeout: 10000,
+  withCredentials: true,
 });
 
 // 请求拦截器：添加 Token
@@ -46,15 +62,21 @@ request.interceptors.response.use(
     }
 
     if (result.code === 401) {
-      clearAuthTokens();
-      window.location.href = "/login";
-      return Promise.reject(new Error(result.message));
+      handleUnauthorized();
+      return Promise.reject(new Error(result.message || "登录已过期"));
     }
 
     message.error(result.message || "请求失败");
     return Promise.reject(new Error(result.message || "请求失败"));
   },
   (error) => {
+    const status = error.response?.status;
+
+    if (status === 401) {
+      handleUnauthorized();
+      return Promise.reject(error);
+    }
+
     message.error(error.message || "网络错误");
     return Promise.reject(error);
   },

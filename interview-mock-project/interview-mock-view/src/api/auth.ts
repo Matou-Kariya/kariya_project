@@ -31,8 +31,8 @@ export function loginApi(data: LoginParams) {
   });
 }
 
-export function refreshTokenApi(refreshToken: string) {
-  return request.post<LoginResponse, LoginResponse>("/auth/refresh", { refreshToken });
+export function refreshTokenApi() {
+  return request.post<LoginResponse, LoginResponse>("/auth/refresh");
 }
 
 export function getCurrentUserApi() {
