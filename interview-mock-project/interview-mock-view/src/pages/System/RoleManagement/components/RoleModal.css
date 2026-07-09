@@ -1,0 +1,68 @@
+/* Modal：使用更接近 Ant Design 的原生风格 */
+.role-modal .ant-modal-content {
+  padding: 0;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow:
+    0 6px 16px 0 rgba(0, 0, 0, 0.08),
+    0 3px 6px -4px rgba(0, 0, 0, 0.12),
+    0 9px 28px 8px rgba(0, 0, 0, 0.05);
+}
+
+.role-modal .ant-modal-header {
+  padding: 8px;
+  margin-bottom: 0;
+  background: transparent;
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+}
+
+.role-modal .ant-modal-title {
+  color: rgba(0, 0, 0, 0.88);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.role-modal .ant-modal-close {
+  top: 18px;
+  inset-inline-end: 18px;
+}
+
+.role-modal .ant-modal-body {
+  padding: 8px;
+}
+
+.role-modal .ant-modal-footer {
+  padding: 8px;
+  margin-top: 0;
+  border-top: 0;
+}
+
+.role-modal .ant-modal-footer .ant-btn {
+  min-width: 76px;
+  height: 36px;
+  font-weight: 500;
+  border-radius: 6px;
+}
+
+.role-modal .ant-modal-footer .ant-btn-primary {
+  background: #1677ff;
+  box-shadow: none;
+}
+
+.role-modal .ant-modal-footer .ant-btn-primary:hover {
+  background: #4096ff !important;
+}
+
+.role-modal-form .ant-form-item {
+  margin-bottom: 20px;
+}
+
+.role-modal-form .ant-form-item-label > label {
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 500;
+}
+
+.role-modal-form textarea.ant-input {
+  resize: none;
+}

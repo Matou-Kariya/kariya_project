@@ -1,17 +1,12 @@
-import { useMemo } from "react";
-import { RouterProvider } from "react-router-dom";
-import { useSelector } from "react-redux";
-import type { RootState } from "@/store";
-import { createAppRouter } from "@/router";
+import { BrowserRouter } from "react-router-dom";
+import { AppRoutes } from "@/router";
 
 function App() {
-  const menus = useSelector((state: RootState) => state.user.menus);
-
-  const router = useMemo(() => {
-    return createAppRouter(menus);
-  }, [menus]);
-
-  return <RouterProvider router={router} />;
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
 }
 
 export default App;

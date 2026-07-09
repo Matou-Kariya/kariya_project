@@ -53,7 +53,7 @@ jwt:
 auth:
   access-token-expire-minutes: 15
   refresh-token-expire-hours: 8
-  remember-me-refresh-token-expire-days: 14
+  remember-me-ref resh-token-expire-days: 14
   refresh-token-cookie-name: refresh_token
   device-id-cookie-name: device_id
   refresh-token-cookie-path: /

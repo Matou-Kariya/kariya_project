@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 import type { RouteObject } from "react-router-dom";
 import { resolvePageComponent } from "./componentResolver";
-import { ConsoleLayoutLoading } from "@/components/ConsoleLayoutLoading";
-import NotFound from "@/pages/Error/NotFound";
+import { AppMainLoading } from "@/components/AppMainLoading";
 import type { DbMenu } from "@/types/menu";
 
 function flattenMenus(menus: DbMenu[]) {
@@ -11,7 +10,10 @@ function flattenMenus(menus: DbMenu[]) {
   const walk = (items: DbMenu[]) => {
     items.forEach((item) => {
       result.push(item);
-      if (item.children?.length) walk(item.children);
+
+      if (item.children?.length) {
+        walk(item.children);
+      }
     });
   };
 
@@ -24,31 +26,23 @@ function normalizeRoutePath(path: string) {
 }
 
 export function buildDynamicRoutes(menus: DbMenu[]): RouteObject[] {
-  const pageMenus = flattenMenus(menus).filter((item) => item.status === 1 && item.menuType === 1);
+  return flattenMenus(menus)
+    .filter((item) => item.status === 1 && item.menuType === 1)
+    .map((menu) => {
+      const Component = resolvePageComponent(menu.component);
 
-  const routes: RouteObject[] = pageMenus.map((menu) => {
-    const Component = resolvePageComponent(menu.component);
-
-    return {
-      path: normalizeRoutePath(menu.path),
-      element: (
-        <Suspense fallback={<ConsoleLayoutLoading />}>
-          <Component />
-        </Suspense>
-      ),
-      handle: {
-        title: menu.menuName,
-        permission: menu.permission,
-        menuId: menu.id,
-      },
-      errorElement: <NotFound />,
-    };
-  });
-
-  routes.push({
-    path: "*",
-    element: <NotFound />,
-  });
-
-  return routes;
+      return {
+        path: normalizeRoutePath(menu.path),
+        element: (
+          <Suspense fallback={<AppMainLoading text="正在加载页面" />}>
+            <Component />
+          </Suspense>
+        ),
+        handle: {
+          title: menu.menuName,
+          permission: menu.permission,
+          menuId: menu.id,
+        },
+      };
+    });
 }

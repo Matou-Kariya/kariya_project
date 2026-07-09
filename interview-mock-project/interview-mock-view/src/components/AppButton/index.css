@@ -1,0 +1,40 @@
+.app-button.ant-btn {
+  height: 40px;
+  padding-inline: 16px;
+  font-weight: 750;
+  border-radius: 13px;
+  transition: all 0.18s ease;
+}
+
+.app-button--primary.ant-btn {
+  color: #fff;
+  background: linear-gradient(135deg, #3769df, #477cff);
+  border: 0;
+  box-shadow: 0 12px 24px rgba(56, 104, 232, 0.2);
+}
+
+.app-button--primary.ant-btn:hover {
+  color: #fff !important;
+  background: linear-gradient(135deg, #2f5fd2, #3f72f2) !important;
+  box-shadow: 0 14px 28px rgba(56, 104, 232, 0.26);
+  transform: translateY(-1px);
+}
+
+.app-button--default.ant-btn {
+  color: #566176;
+  background: #fff;
+  border: 1px solid #e6edf7;
+  box-shadow: 0 10px 22px rgba(40, 58, 90, 0.04);
+}
+
+.app-button--soft.ant-btn {
+  color: #2868ff;
+  background: #eef5ff;
+  border: 1px solid #d8e8ff;
+}
+
+.app-button--danger.ant-btn {
+  color: #ff4d4f;
+  background: #fff5f5;
+  border: 1px solid #ffd8d8;
+}

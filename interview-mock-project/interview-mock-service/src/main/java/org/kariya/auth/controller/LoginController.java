@@ -40,7 +40,7 @@ public class LoginController {
         return Result.success(toResponse(result));
     }
 
-    @PostMapping("/logout")
+    @PostMapping("/logout") 
     public Result<Void> logout(@CookieValue(value = "refresh_token", required = false) String refreshToken,
                                HttpServletRequest request, HttpServletResponse response) {
         String accessToken = resolveBearerToken(request);

@@ -42,22 +42,22 @@ const Login = () => {
   return (
     <main className="login-page">
       <section className="login-intro" aria-label="产品介绍">
-        <a className="login-brand" href="/login" aria-label="AI 面试官首页">
-          <span className="login-brand__mark">AI</span>
-          <span>INTERVIEW</span>
+        <a className="login-brand" href="/login" aria-label="Kariya-Admin">
+          <span className="login-brand__mark">KA</span>
+          <span>Kariya-Admin</span>
         </a>
 
         <div className="login-intro__content">
-          <p className="login-intro__eyebrow">YOUR NEXT OPPORTUNITY</p>
+          <p className="login-intro__eyebrow">Ready when you are.</p>
           <h1>
-            让每一次练习，
+            高效协同，
             <br />
-            都更接近理想 Offer
+            &nbsp;&nbsp;专注核心价值。
           </h1>
-          <p className="login-intro__description">沉浸式模拟真实面试场景，记录成长，也看见更好的自己。</p>
+          <p className="login-intro__description">清晰、简洁、顺手 —— 后台就该这样。</p>
         </div>
 
-        <p className="login-intro__footer">AI 模拟面试 · 专注每一次表达</p>
+        <p className="login-intro__footer">简洁 · 高效 · 可靠</p>
       </section>
 
       <section className="login-panel" aria-labelledby="login-title">
@@ -65,7 +65,7 @@ const Login = () => {
           <header className="login-heading">
             <p className="login-heading__eyebrow">WELCOME BACK</p>
             <h2 id="login-title">欢迎回来</h2>
-            <p>登录你的账号，继续今天的面试练习。</p>
+            <p>登录，开始今天的新工作。</p>
           </header>
 
           <button className="social-login" type="button">

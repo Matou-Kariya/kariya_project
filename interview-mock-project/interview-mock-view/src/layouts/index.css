@@ -1,9 +1,9 @@
 .basic-layout {
   min-height: 100vh;
-  background: #eef5ff;
+  background: radial-gradient(circle at 85% 8%, rgba(68, 114, 255, 0.08), transparent 28%), linear-gradient(135deg, #f7f9ff 0%, #f3f6fb 45%, #eef3fb 100%);
 }
 
 .basic-layout__right {
   min-width: 0;
-  background: #eef5ff;
+  background: transparent;
 }

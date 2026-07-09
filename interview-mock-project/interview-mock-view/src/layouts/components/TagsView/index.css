@@ -1,10 +1,78 @@
 .tags-view {
-  height: 40px;
-  padding: 4px 16px 0;
-  background: #ffffff;
-  border-bottom: 1px solid #e8eef7;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 54px;
+  margin: 0 28px 18px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #edf2fb;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(40, 58, 90, 0.04);
 }
 
-.tags-view .ant-tabs-nav {
-  margin-bottom: 0;
+.tags-view__list {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.tags-view__list::-webkit-scrollbar {
+  height: 0;
+}
+
+.tags-view__tag {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  color: #69758a;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+  background: #f8fbff;
+  border: 1px solid #edf2fb;
+  border-radius: 12px;
+  transition: all 0.18s ease;
+}
+
+.tags-view__tag:hover {
+  color: #2868ff;
+  background: #f1f7ff;
+}
+
+.tags-view__tag--active {
+  color: #2868ff;
+  background: #eef5ff;
+  border-color: #d8e8ff;
+  box-shadow: 0 10px 22px rgba(40, 104, 255, 0.1);
+}
+
+.tags-view__close {
+  color: #9aa6bc;
+  font-size: 12px;
+}
+
+.tags-view__close:hover {
+  color: #ef4444;
+}
+
+.tags-view__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: 12px;
+}
+
+.tags-view__refresh {
+  width: 36px;
+  height: 36px;
+  color: #7a8598;
+  background: #fff;
+  border: 1px solid #edf2fb;
+  border-radius: 12px;
 }

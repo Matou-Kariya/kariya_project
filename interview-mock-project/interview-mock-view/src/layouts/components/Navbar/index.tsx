@@ -1,5 +1,5 @@
-import { Avatar, Breadcrumb, Button, Dropdown } from "antd";
-import { MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined, LogoutOutlined } from "@ant-design/icons";
+import { Avatar, Breadcrumb, Button, Dropdown, Input } from "antd";
+import { BellOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SearchOutlined, UserOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { MenuProps } from "antd";
@@ -15,17 +15,28 @@ type NavbarProps = {
   onToggle: () => void;
 };
 
-function findMenuName(menus: DbMenu[], pathname: string): string | undefined {
-  for (const menu of menus) {
-    const path = menu.path.startsWith("/") ? menu.path : `/${menu.path}`;
+function normalizePath(path: string) {
+  return path.startsWith("/") ? path : `/${path}`;
+}
 
-    if (path === pathname) return menu.menuName;
+function findMenuChain(menus: DbMenu[], pathname: string): DbMenu[] {
+  for (const menu of menus) {
+    const path = normalizePath(menu.path);
+
+    if (path === pathname) {
+      return [menu];
+    }
 
     if (menu.children?.length) {
-      const name = findMenuName(menu.children, pathname);
-      if (name) return name;
+      const childChain = findMenuChain(menu.children, pathname);
+
+      if (childChain.length) {
+        return [menu, ...childChain];
+      }
     }
   }
+
+  return [];
 }
 
 export function Navbar({ collapsed, onToggle }: NavbarProps) {
@@ -34,6 +45,33 @@ export function Navbar({ collapsed, onToggle }: NavbarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  const menuChain = findMenuChain(menus, location.pathname);
+
+  const breadcrumbItems = [
+    {
+      title: (
+        <span className="navbar__breadcrumb-link" onClick={() => navigate("/dashboard")}>
+          首页
+        </span>
+      ),
+    },
+    ...menuChain.map((menu, index) => {
+      const isLast = index === menuChain.length - 1;
+      const path = normalizePath(menu.path);
+      const clickable = isLast && menu.menuType === 1;
+
+      return {
+        title: clickable ? (
+          <span className="navbar__breadcrumb-current">{menu.menuName}</span>
+        ) : (
+          <span className={isLast ? "navbar__breadcrumb-current" : "navbar__breadcrumb-parent"}>{menu.menuName}</span>
+        ),
+        onClick: undefined,
+        key: path,
+      };
+    }),
+  ];
 
   const handleLogout = async () => {
     try {
@@ -57,17 +95,23 @@ export function Navbar({ collapsed, onToggle }: NavbarProps) {
   return (
     <header className="navbar">
       <div className="navbar__left">
-        <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={onToggle} />
+        <Button className="navbar__toggle" type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={onToggle} />
 
-        <Breadcrumb items={[{ title: "首页" }, { title: findMenuName(menus, location.pathname) || "仪表盘" }]} />
+        <Breadcrumb className="navbar__breadcrumb" items={breadcrumbItems} />
       </div>
 
-      <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-        <div className="navbar__user">
-          <Avatar icon={<UserOutlined />} />
-          <span>{userInfo?.username || "Admin"}</span>
-        </div>
-      </Dropdown>
+      <div className="navbar__right">
+        <Button className="navbar__icon" shape="circle" icon={<BellOutlined />} />
+
+        <Input className="navbar__search" prefix={<SearchOutlined />} placeholder="搜索菜单、功能或关键词" allowClear />
+
+        <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+          <div className="navbar__user">
+            <Avatar className="navbar__avatar" icon={<UserOutlined />} />
+            <span>{userInfo?.username || "Admin"}</span>
+          </div>
+        </Dropdown>
+      </div>
     </header>
   );
 }

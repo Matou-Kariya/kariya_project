@@ -1,8 +1,37 @@
 .app-main {
-  margin: 16px;
-  padding: 20px;
-  min-height: calc(100vh - 136px);
-  background: #ffffff;
-  border-radius: 8px;
+  min-height: calc(100vh - 174px);
+  margin: 0 28px 28px;
+  padding: 24px;
   overflow: auto;
+  background: radial-gradient(circle at 92% 4%, rgba(66, 119, 255, 0.08), transparent 24%), #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.86);
+  border-radius: 24px;
+  box-shadow: 0 24px 70px rgba(40, 58, 90, 0.07);
+}
+
+.app-main .ant-card {
+  border-color: #edf2fb;
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.app-main .ant-card-head {
+  min-height: 58px;
+  border-bottom-color: #eef2f7;
+}
+
+.app-main .ant-card-head-title {
+  color: #263349;
+  font-weight: 800;
+}
+
+.app-main .ant-table-wrapper .ant-table {
+  color: #334155;
+  background: #fff;
+}
+
+.app-main .ant-table-thead > tr > th {
+  color: #263349;
+  font-weight: 800;
+  background: #f8fafc;
 }

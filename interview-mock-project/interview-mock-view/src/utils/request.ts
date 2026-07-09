@@ -24,7 +24,7 @@ let refreshPromise: Promise<LoginResponse> | null = null;
 
 const request = axios.create({
   baseURL: "/api",
-  timeout: 10000,
+  timeout: 30000,
   withCredentials: true,
 });
 
