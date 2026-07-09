@@ -3,11 +3,12 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { getUserMenusApi } from "@/api/menu";
 import { getCurrentUserApi, refreshTokenApi } from "@/api/auth";
-import { clearAuthTokens, getAccessToken, getUserInfo, saveAccessToken, saveUserInfo } from "@/utils/authStorage";
+import type { UserInfo } from "@/api/auth";
+import type { DbMenu } from "@/types/menu";
+import { clearAuthTokens, getAccessToken, saveAccessToken, saveUserInfo } from "@/utils/authStorage";
 import { setMenus, setToken, setUserInfo } from "@/store/slices/userSlice";
 import { ConsoleLayoutLoading } from "@/components/ConsoleLayoutLoading";
-import type { DbMenu } from "@/types/menu";
-import type { UserInfo } from "@/api/auth";
+import { isJwtExpired } from "@/utils/jwt";
 
 type RequireAuthProps = {
   children: React.ReactNode;
@@ -34,22 +35,21 @@ function bootstrapAuth() {
 
 async function doBootstrapAuth(): Promise<AuthBootstrapResult> {
   let token = getAccessToken();
-  let userInfo = getUserInfo<UserInfo>();
 
-  if (!token) {
+  if (!token || isJwtExpired(token)) {
     const refreshed = await refreshTokenApi();
 
     token = refreshed.accessToken;
-    userInfo = refreshed.userInfo;
 
     saveAccessToken(refreshed.accessToken);
-    saveUserInfo(refreshed.userInfo);
+
+    if (refreshed.userInfo) {
+      saveUserInfo(refreshed.userInfo);
+    }
   }
 
-  if (!userInfo) {
-    userInfo = await getCurrentUserApi();
-    saveUserInfo(userInfo);
-  }
+  const userInfo = await getCurrentUserApi();
+  saveUserInfo(userInfo);
 
   const menus = await getUserMenusApi();
 

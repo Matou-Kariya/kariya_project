@@ -4,6 +4,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { MenuProps } from "antd";
 import type { RootState } from "@/store";
+import { logoutApi } from "@/api/auth";
+import { clearAuthTokens } from "@/utils/authStorage";
 import { logout } from "@/store/slices/userSlice";
 import type { DbMenu } from "@/types/menu";
 import "./index.css";
@@ -33,15 +35,22 @@ export function Navbar({ collapsed, onToggle }: NavbarProps) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const handleLogout = async () => {
+    try {
+      await logoutApi();
+    } finally {
+      clearAuthTokens();
+      dispatch(logout());
+      navigate("/login", { replace: true });
+    }
+  };
+
   const userMenuItems: MenuProps["items"] = [
     {
       key: "logout",
       icon: <LogoutOutlined />,
       label: "退出登录",
-      onClick: () => {
-        dispatch(logout());
-        navigate("/login", { replace: true });
-      },
+      onClick: handleLogout,
     },
   ];
 

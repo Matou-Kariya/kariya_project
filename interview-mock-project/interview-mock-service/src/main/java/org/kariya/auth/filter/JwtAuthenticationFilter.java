@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.kariya.auth.service.LoginUserDetailsService;
+import org.kariya.auth.service.TokenVersionService;
 import org.kariya.constant.Constants;
 import org.kariya.utils.JwtTokenUtil;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -29,6 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenUtil jwtTokenUtil;
     private final LoginUserDetailsService loginUserDetailsService;
     private final StringRedisTemplate stringRedisTemplate;
+    private final TokenVersionService tokenVersionService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -44,9 +46,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 throw new JwtException("Invalid token type");
             }
             String jti = claims.getId();
-            Boolean blacklisted = stringRedisTemplate.hasKey(Constants.accessBlacklistKey(jti));
-            if (blacklisted) {
+            if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(Constants.accessBlacklistKey(jti)))) {
                 throw new JwtException("Token blacklisted");
+            }
+            Long userId = Long.valueOf(claims.getSubject());
+            Integer tokenVersion = claims.get("tokenVersion", Integer.class);
+            Integer currentVersion = tokenVersionService.getCurrentTokenVersion(userId);
+            if (!currentVersion.equals(tokenVersion)) {
+                throw new JwtException("Token version changed");
             }
             String username = claims.get("username", String.class);
             UserDetails userDetails = loginUserDetailsService.loadUserByUsername(username);

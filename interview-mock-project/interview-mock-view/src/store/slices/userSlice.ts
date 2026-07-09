@@ -5,7 +5,8 @@ import type { DbMenu } from "@/types/menu";
 type UserInfo = {
   userId?: number;
   username?: string;
-  role?: string;
+  roles?: string[];
+  permissions?: string[];
 };
 
 type UserState = {

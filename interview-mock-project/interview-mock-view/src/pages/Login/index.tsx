@@ -5,10 +5,8 @@ import { saveAccessToken, saveUserInfo } from "@/utils/authStorage";
 import { useNavigate } from "react-router-dom";
 import type { ComponentProps } from "react";
 import { useState } from "react";
-
 import { useDispatch } from "react-redux";
-import { getUserMenusApi } from "@/api/menu";
-import { setToken, setUserInfo, setMenus } from "@/store/slices/userSlice";
+import { setToken, setUserInfo } from "@/store/slices/userSlice";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -26,28 +24,16 @@ const Login = () => {
     const password = String(formData.get("password") || "");
     const rememberMe = formData.get("remember") === "on";
 
-    let res;
-
     try {
       setSubmitting(true);
-      res = await loginApi({ username, password, rememberMe });
+      const res = await loginApi({ username, password, rememberMe });
+      saveAccessToken(res.accessToken);
+      saveUserInfo(res.userInfo);
+      dispatch(setToken(res.accessToken));
+      dispatch(setUserInfo(res.userInfo));
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : "登录失败，请稍后重试");
-      setSubmitting(false);
-      return;
-    }
-
-    saveAccessToken(res.accessToken);
-    saveUserInfo(res.userInfo);
-
-    dispatch(setToken(res.accessToken));
-    dispatch(setUserInfo(res.userInfo));
-
-    try {
-      const menus = await getUserMenusApi();
-      dispatch(setMenus(menus));
-
-      navigate("/dashboard", { replace: true });
     } finally {
       setSubmitting(false);
     }

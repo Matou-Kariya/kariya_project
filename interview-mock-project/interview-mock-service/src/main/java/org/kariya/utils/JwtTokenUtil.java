@@ -18,31 +18,23 @@ import java.util.List;
 @ConfigurationProperties(prefix = "jwt")
 @Data
 public class JwtTokenUtil {
-
     private String secret;
     private Long accessTokenExpireMinutes;
-    private Long refreshTokenExpireDays;
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(Long userId, String username, List<String> roles, String jti) {
+    public String generateAccessToken(Long userId, String username, List<String> roles,
+            Integer tokenVersion, String deviceId, String jti) {
         Date now = new Date();
         Date expireAt = Date.from(LocalDateTime.now().plusMinutes(accessTokenExpireMinutes)
                 .atZone(ZoneId.systemDefault()).toInstant());
 
-        return Jwts.builder().id(jti).subject(String.valueOf(userId)).claim("username", username).claim("role", roles)
-                .claim("type", "access").issuedAt(now).expiration(expireAt).signWith(getSigningKey()).compact();
-    }
-
-    public String generateRefreshToken(Long userId, String username, List<String> roles, String jti, long expireMinutes) {
-        Date now = new Date();
-        Date expireAt = Date.from(LocalDateTime.now().plusMinutes(expireMinutes).atZone(ZoneId.systemDefault())
-                .toInstant());
-
-        return Jwts.builder().id(jti).subject(String.valueOf(userId)).claim("username", username).claim("role", roles)
-                .claim("type", "refresh").issuedAt(now).expiration(expireAt).signWith(getSigningKey()).compact();
+        return Jwts.builder().id(jti).subject(String.valueOf(userId)).claim("username", username)
+                .claim("roles", roles).claim("tokenVersion", tokenVersion).claim("deviceId", deviceId)
+                .claim("type", "access").issuedAt(now).expiration(expireAt).signWith(getSigningKey())
+                .compact();
     }
 
     public Claims parseToken(String token) {

@@ -10,17 +10,11 @@ import java.time.LocalDateTime;
 @Data
 @TableName("sys_role")
 public class SysRole {
-
     @TableId(type = IdType.AUTO)
     private Long id;
-
     private String roleName;
-
     private String roleKey;
-
     private Integer status;
-
     private LocalDateTime createTime;
-
     private LocalDateTime updateTime;
 }

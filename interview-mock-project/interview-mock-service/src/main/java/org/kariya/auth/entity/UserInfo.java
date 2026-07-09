@@ -12,5 +12,6 @@ import java.util.List;
 public class UserInfo {
     private Long userId;
     private String username;
-    private List<String> role;
+    private List<String> roles;
+    private List<String> permissions;
 }

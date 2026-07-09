@@ -12,25 +12,15 @@ import java.util.List;
 @NoArgsConstructor
 public class MenuVO {
     private Long id;
-
     private Long parentId;
-
     private String menuName;
-
     private String path;
-
     private String component;
-
     private String icon;
-
     private Integer menuType;
-
     private String permission;
-
     private Integer orderNum;
-
     private Integer status;
-
     private List<MenuVO> children = new ArrayList<>();
 
     public static MenuVO from(SysMenu menu) {

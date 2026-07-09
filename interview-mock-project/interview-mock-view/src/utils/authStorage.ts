@@ -1,3 +1,5 @@
+import type { UserInfo } from "@/api/auth";
+
 const ACCESS_TOKEN_KEY = "accessToken";
 const USER_INFO_KEY = "userInfo";
 
@@ -9,16 +11,16 @@ export function getAccessToken() {
   return sessionStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
-export function saveUserInfo<T>(userInfo: T) {
+export function saveUserInfo(userInfo: UserInfo) {
   sessionStorage.setItem(USER_INFO_KEY, JSON.stringify(userInfo));
 }
 
-export function getUserInfo<T>() {
+export function getUserInfo() {
   const raw = sessionStorage.getItem(USER_INFO_KEY);
   if (!raw) return null;
 
   try {
-    return JSON.parse(raw) as T;
+    return JSON.parse(raw) as UserInfo;
   } catch {
     return null;
   }

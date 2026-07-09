@@ -2,87 +2,162 @@ package org.kariya.auth.service;
 
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
-import org.kariya.auth.entity.LoginRequest;
-import org.kariya.auth.entity.LoginResponse;
-import org.kariya.auth.entity.LoginUser;
-import org.kariya.auth.entity.UserInfo;
+import org.kariya.auth.entity.*;
+import org.kariya.config.AuthProperties;
 import org.kariya.constant.Constants;
 import org.kariya.entity.ResultCode;
 import org.kariya.exception.BusinessException;
 import org.kariya.utils.JwtTokenUtil;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-    private static final long NORMAL_REFRESH_MINUTES = 120;
-    private static final long REMEMBER_REFRESH_MINUTES = 7 * 24 * 60;
-
     private final JwtTokenUtil jwtTokenUtil;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final StringRedisTemplate redisTemplate;
     private final AuthenticationManager authenticationManager;
+    private final LoginUserDetailsService loginUserDetailsService;
+    private final RefreshTokenService refreshTokenService;
+    private final TokenVersionService tokenVersionService;
+    private final AuthProperties authProperties;
 
-    public LoginResponse login(LoginRequest loginRequest) {
+    public AuthTokenResult login(LoginRequest request, HttpServletRequest servletRequest) {
         Authentication authentication;
         try {
-            authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-                    loginRequest.username(), loginRequest.password()));
+            authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.username(), request.password()));
         } catch (DisabledException e) {
             throw new BusinessException(1003, "账号已被禁用");
         } catch (AuthenticationException e) {
             throw new BusinessException(ResultCode.USERNAME_OR_PASSWORD_ERROR);
         }
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
-        Long userId = loginUser.getUserId();
-        String username = loginUser.getUsername();
-        List<String> roles = loginUser.getRoles();
-        String accessJti = UUID.randomUUID().toString();
-        String refreshJti = UUID.randomUUID().toString();
-        long refreshMinutes = loginRequest.rememberMeEnabled() ? 7 * 24 * 60 : 120;
-        String accessToken = jwtTokenUtil.generateAccessToken(userId, username, roles, accessJti);
-        String refreshToken = jwtTokenUtil.generateRefreshToken(userId, username, roles, refreshJti, refreshMinutes);
-        stringRedisTemplate.opsForValue().set(Constants.refreshTokenKey(refreshJti), String.valueOf(userId),
-                Duration.ofMinutes(refreshMinutes));
-        return new LoginResponse(accessToken, refreshToken, new UserInfo(userId, username, roles));
+        String deviceId = StringUtils.hasText(request.deviceId()) ? request.deviceId() : UUID.randomUUID().toString();
+        Integer tokenVersion = tokenVersionService.getCurrentTokenVersion(loginUser.getUserId());
+        String accessToken = generateAccessToken(loginUser, tokenVersion, deviceId);
+        String refreshToken = refreshTokenService.generateRawToken();
+        Duration refreshTtl = getRefreshTtl(request.rememberMeEnabled());
+        LoginSession session = buildSession(loginUser, deviceId, refreshToken, tokenVersion,
+                request.rememberMeEnabled(), servletRequest);
+        refreshTokenService.saveSession(session, refreshTtl);
+        return new AuthTokenResult(accessToken, authProperties.getAccessTokenExpireMinutes() * 60,
+                toUserInfo(loginUser), refreshToken, deviceId, refreshTtl);
     }
 
-    public LoginResponse refresh(String refreshToken) {
-        Claims claims = jwtTokenUtil.parseToken(refreshToken);
-        if (!"refresh".equals(claims.get("type", String.class))) {
+    public AuthTokenResult refresh(String rawRefreshToken, HttpServletRequest servletRequest) {
+        if (!StringUtils.hasText(rawRefreshToken)) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED);
+        }
+        String incomingHash = refreshTokenService.hash(rawRefreshToken);
+        LoginSession session = refreshTokenService.getSessionByRefreshToken(rawRefreshToken);
+        if (session == null) {
+            if (refreshTokenService.wasRefreshTokenUsed(incomingHash)) {
+                throw new BusinessException(ResultCode.REFRESH_TOKEN_INVALID);
+            }
             throw new BusinessException(ResultCode.REFRESH_TOKEN_INVALID);
         }
-        String refreshJti = claims.getId();
-        Boolean exists = stringRedisTemplate.hasKey(Constants.refreshTokenKey(refreshJti));
-        if (!exists) {
+        if (!incomingHash.equals(session.getRefreshTokenHash())) {
+            refreshTokenService.deleteSession(session);
             throw new BusinessException(ResultCode.REFRESH_TOKEN_INVALID);
         }
-        Long userId = Long.valueOf(claims.getSubject());
-        String username = claims.get("username", String.class);
-        List<String> roleList = claims.get("role", List.class);
-        String newAccessJti = UUID.randomUUID().toString();
-        String newAccessToken = jwtTokenUtil.generateAccessToken(userId, username, roleList, newAccessJti);
-        return new LoginResponse(newAccessToken, refreshToken, new UserInfo(userId, username, roleList));
+        LoginUser loginUser = (LoginUser) loginUserDetailsService.loadUserByUsername(session.getUsername());
+        Integer currentTokenVersion = tokenVersionService.getCurrentTokenVersion(loginUser.getUserId());
+        if (!currentTokenVersion.equals(session.getTokenVersion())) {
+            refreshTokenService.deleteSession(session);
+            throw new BusinessException(ResultCode.UNAUTHORIZED);
+        }
+        String newAccessToken = generateAccessToken(loginUser, currentTokenVersion, session.getDeviceId());
+        String newRefreshToken = refreshTokenService.generateRawToken();
+        Duration refreshTtl = Boolean.TRUE.equals(session.getRememberMe())
+                ? Duration.ofDays(authProperties.getRememberMeRefreshTokenExpireDays())
+                : Duration.ofHours(authProperties.getRefreshTokenExpireHours());
+        refreshTokenService.deleteSession(session);
+        refreshTokenService.markRefreshTokenUsed(incomingHash, Duration.ofSeconds(authProperties.getRefreshReuseGraceSeconds()));
+        session.setRefreshTokenHash(refreshTokenService.hash(newRefreshToken));
+        session.setLastRefreshTime(LocalDateTime.now());
+        session.setRoles(loginUser.getRoles());
+        session.setPermissions(loginUser.getPermissions());
+        session.setTokenVersion(currentTokenVersion);
+        refreshTokenService.saveSession(session, refreshTtl);
+        return new AuthTokenResult(newAccessToken, authProperties.getAccessTokenExpireMinutes() * 60,
+                toUserInfo(loginUser), newRefreshToken, session.getDeviceId(), refreshTtl);
     }
 
-    public void logout(String accessToken, String refreshToken) {
-        Claims accessClaims = jwtTokenUtil.parseToken(accessToken);
-        Claims refreshClaims = jwtTokenUtil.parseToken(refreshToken);
-        long remainMillis = accessClaims.getExpiration().getTime() - System.currentTimeMillis();
-        if (remainMillis > 0) {
-            stringRedisTemplate.opsForValue().set(Constants.accessBlacklistKey(accessClaims.getId()), "1", Duration.ofMillis(remainMillis));
+    public void logout(String rawRefreshToken, String accessToken) {
+        if (StringUtils.hasText(rawRefreshToken)) {
+            LoginSession session = refreshTokenService.getSessionByRefreshToken(rawRefreshToken);
+            if (session != null) {
+                refreshTokenService.deleteSession(session);
+            }
         }
-        stringRedisTemplate.delete(Constants.refreshTokenKey(refreshClaims.getId()));
+        if (StringUtils.hasText(accessToken)) {
+            addAccessTokenToBlacklist(accessToken);
+        }
+    }
+
+    private void addAccessTokenToBlacklist(String accessToken) {
+        try {
+            Claims claims = jwtTokenUtil.parseToken(accessToken);
+            String jti = claims.getId();
+            long remainMillis = claims.getExpiration().getTime() - System.currentTimeMillis();
+            if (remainMillis > 0) {
+                redisTemplate.opsForValue().set(Constants.accessBlacklistKey(jti), "1",
+                        Duration.ofMillis(remainMillis));
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private String generateAccessToken(LoginUser loginUser, Integer tokenVersion, String deviceId) {
+        return jwtTokenUtil.generateAccessToken(loginUser.getUserId(), loginUser.getUsername(),
+                loginUser.getRoles(), tokenVersion, deviceId, UUID.randomUUID().toString());
+    }
+
+    private LoginSession buildSession(LoginUser loginUser, String deviceId, String rawRefreshToken,
+                                      Integer tokenVersion, boolean rememberMe, HttpServletRequest request) {
+        LoginSession session = new LoginSession();
+        session.setUserId(loginUser.getUserId());
+        session.setUsername(loginUser.getUsername());
+        session.setDeviceId(deviceId);
+        session.setRefreshTokenHash(refreshTokenService.hash(rawRefreshToken));
+        session.setLoginIp(getClientIp(request));
+        session.setUserAgent(request.getHeader("User-Agent"));
+        session.setLoginTime(LocalDateTime.now());
+        session.setLastRefreshTime(LocalDateTime.now());
+        session.setTokenVersion(tokenVersion);
+        session.setRememberMe(rememberMe);
+        session.setRoles(loginUser.getRoles());
+        session.setPermissions(loginUser.getPermissions());
+        return session;
+    }
+
+    private UserInfo toUserInfo(LoginUser loginUser) {
+        return new UserInfo(loginUser.getUserId(), loginUser.getUsername(), loginUser.getRoles(),
+                loginUser.getPermissions());
+    }
+
+    private Duration getRefreshTtl(boolean rememberMe) {
+        return rememberMe ? Duration.ofDays(authProperties.getRememberMeRefreshTokenExpireDays())
+                : Duration.ofHours(authProperties.getRefreshTokenExpireHours());
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (StringUtils.hasText(forwarded)) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }
