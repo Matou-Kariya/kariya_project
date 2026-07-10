@@ -2,6 +2,7 @@ package org.kariya.system.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Select;
 import org.kariya.system.entity.SysMenu;
 
@@ -9,6 +10,13 @@ import java.util.List;
 
 @Mapper
 public interface SysMenuMapper extends BaseMapper<SysMenu> {
+    @Select("""
+                select *
+                from sys_menu
+                order by parent_id, order_num, id
+            """)
+    List<SysMenu> selectAllMenus();
+
     @Select("""
                 select distinct m.*
                 from sys_menu m
@@ -27,4 +35,10 @@ public interface SysMenuMapper extends BaseMapper<SysMenu> {
                 order by parent_id, order_num
             """)
     List<SysMenu> selectAllEnabledMenus();
+
+    @Select("select count(*) from sys_menu where parent_id = #{parentId}")
+    long countChildren(Long parentId);
+
+    @Delete("delete from sys_role_menu where menu_id = #{menuId}")
+    int deleteRoleMenuRelations(Long menuId);
 }

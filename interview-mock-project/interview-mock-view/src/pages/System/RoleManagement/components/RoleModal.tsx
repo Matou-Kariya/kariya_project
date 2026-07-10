@@ -1,6 +1,5 @@
 import { Form, Input, Modal, Select } from "antd";
 import { useEffect } from "react";
-import type { FormInstance } from "antd";
 import "./RoleModal.css";
 
 const { TextArea } = Input;

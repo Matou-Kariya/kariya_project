@@ -1,35 +1,36 @@
 import { Layout, Menu } from "antd";
-import { DashboardOutlined, SettingOutlined, RobotOutlined, QuestionCircleOutlined, PlayCircleFilled } from "@ant-design/icons";
-import { useEffect, useMemo, useState } from "react";
+import { QuestionCircleOutlined, PlayCircleFilled } from "@ant-design/icons";
+import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import type { MenuProps } from "antd";
 import type { RootState } from "@/store";
 import type { DbMenu } from "@/types/menu";
+import { getMenuIcon } from "@/constants/menuIcons";
 import "./index.css";
 
 const { Sider } = Layout;
-
-const iconMap = {
-  DashboardOutlined: <DashboardOutlined />,
-  SettingOutlined: <SettingOutlined />,
-  RobotOutlined: <RobotOutlined />,
-};
 
 function getMenuKey(menu: DbMenu) {
   return menu.path.startsWith("/") ? menu.path : `/${menu.path}`;
 }
 
-function toMenuItems(menus: DbMenu[]): MenuProps["items"] {
+type SidebarMenuItem = NonNullable<MenuProps["items"]>[number];
+
+function toMenuItems(menus: DbMenu[]): SidebarMenuItem[] {
   return menus
     .filter((item) => item.status === 1 && item.menuType !== 2)
     .sort((a, b) => a.orderNum - b.orderNum)
-    .map((item) => ({
-      key: getMenuKey(item),
-      label: item.menuName,
-      icon: item.icon ? iconMap[item.icon as keyof typeof iconMap] : undefined,
-      children: item.children?.length ? toMenuItems(item.children) : undefined,
-    }));
+    .map((item) => {
+      const children = toMenuItems(item.children ?? []);
+
+      return {
+        key: getMenuKey(item),
+        label: item.menuName,
+        icon: getMenuIcon(item.icon),
+        children: children.length ? children : undefined,
+      };
+    });
 }
 
 function findMenuPathKeys(menus: DbMenu[], pathname: string): string[] {
@@ -62,13 +63,12 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const selectedKeys = matchedKeys.length ? [matchedKeys[matchedKeys.length - 1]] : [location.pathname];
 
   const parentOpenKeys = matchedKeys.slice(0, -1);
-  const [openKeys, setOpenKeys] = useState<string[]>(parentOpenKeys);
-
-  useEffect(() => {
-    if (!collapsed) {
-      setOpenKeys(parentOpenKeys);
-    }
-  }, [collapsed, parentOpenKeys.join("|")]);
+  const parentKeySignature = parentOpenKeys.join("|");
+  const [openState, setOpenState] = useState<{ signature: string; keys: string[] }>({
+    signature: parentKeySignature,
+    keys: parentOpenKeys,
+  });
+  const openKeys = openState.signature === parentKeySignature ? openState.keys : parentOpenKeys;
 
   const helpItems: MenuProps["items"] = [
     {
@@ -100,8 +100,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
           selectedKeys={selectedKeys}
           openKeys={collapsed ? undefined : openKeys}
           items={menuItems}
-          popupClassName="sidebar__popup"
-          onOpenChange={(keys) => setOpenKeys(keys as string[])}
+          classNames={{ popup: { root: "sidebar__popup" } }}
+          onOpenChange={(keys) => setOpenState({ signature: parentKeySignature, keys: keys as string[] })}
           onClick={({ key }) => navigate(String(key))}
           className="sidebar__menu"
         />

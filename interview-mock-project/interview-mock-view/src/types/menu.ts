@@ -11,6 +11,8 @@ export type DbMenu = {
   menuType: MenuType;
   permission?: string | null;
   orderNum: number;
-  status: number;
+  status: 0 | 1;
+  createTime?: string | null;
+  updateTime?: string | null;
   children?: DbMenu[];
 };
