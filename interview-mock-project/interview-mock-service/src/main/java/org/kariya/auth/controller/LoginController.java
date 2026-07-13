@@ -32,7 +32,7 @@ public class LoginController {
     }
 
     @PostMapping("/refresh")
-    public Result<LoginResponse> refresh(@CookieValue(value = "refresh_token", required = false) String refreshToken,
+    public Result<LoginResponse> refresh(@CookieValue(value = "${auth.refresh-token-cookie-name:refresh_token}", required = false) String refreshToken,
                                          HttpServletRequest request, HttpServletResponse response) {
         AuthTokenResult result = authService.refresh(refreshToken, request);
         setRefreshCookie(response, result.getRefreshToken(), result.getRefreshTtl());
@@ -40,8 +40,8 @@ public class LoginController {
         return Result.success(toResponse(result));
     }
 
-    @PostMapping("/logout") 
-    public Result<Void> logout(@CookieValue(value = "refresh_token", required = false) String refreshToken,
+    @PostMapping("/logout")
+    public Result<Void> logout(@CookieValue(value = "${auth.refresh-token-cookie-name:refresh_token}", required = false) String refreshToken,
                                HttpServletRequest request, HttpServletResponse response) {
         String accessToken = resolveBearerToken(request);
         authService.logout(refreshToken, accessToken);

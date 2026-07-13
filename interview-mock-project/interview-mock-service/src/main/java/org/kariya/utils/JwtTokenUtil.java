@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.Data;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,7 @@ import java.util.List;
 @Data
 public class JwtTokenUtil {
     private String secret;
+    @Value("${auth.access-token-expire-minutes}")
     private Long accessTokenExpireMinutes;
 
     private SecretKey getSigningKey() {
@@ -26,7 +28,7 @@ public class JwtTokenUtil {
     }
 
     public String generateAccessToken(Long userId, String username, List<String> roles,
-            Integer tokenVersion, String deviceId, String jti) {
+                                      Integer tokenVersion, String deviceId, String jti) {
         Date now = new Date();
         Date expireAt = Date.from(LocalDateTime.now().plusMinutes(accessTokenExpireMinutes)
                 .atZone(ZoneId.systemDefault()).toInstant());

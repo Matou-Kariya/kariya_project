@@ -1,6 +1,7 @@
 package org.kariya.auth.filter;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -10,9 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.kariya.auth.service.LoginUserDetailsService;
 import org.kariya.auth.service.TokenVersionService;
 import org.kariya.constant.Constants;
+import org.kariya.entity.ResultCode;
 import org.kariya.utils.JwtTokenUtil;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.http.MediaType;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,7 +23,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 @Component
 @RequiredArgsConstructor
@@ -31,6 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final LoginUserDetailsService loginUserDetailsService;
     private final StringRedisTemplate stringRedisTemplate;
     private final TokenVersionService tokenVersionService;
+    private final SecurityErrorWriter securityErrorWriter;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -62,14 +64,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
             filterChain.doFilter(request, response);
-        } catch (JwtException | IllegalArgumentException e) {
+        } catch (ExpiredJwtException e) {
             SecurityContextHolder.clearContext();
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-            response.getWriter().write("""
-                    {"code":401,"message":"登录已过期，请重新登录","data":null}
-                    """);
+            securityErrorWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, ResultCode.TOKEN_EXPIRED);
+        } catch (JwtException | IllegalArgumentException | AuthenticationException e) {
+            SecurityContextHolder.clearContext();
+            securityErrorWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, ResultCode.TOKEN_INVALID);
         }
     }
 

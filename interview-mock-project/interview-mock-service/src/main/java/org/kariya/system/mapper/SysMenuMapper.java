@@ -21,7 +21,8 @@ public interface SysMenuMapper extends BaseMapper<SysMenu> {
                 select distinct m.*
                 from sys_menu m
                 join sys_role_menu rm on rm.menu_id = m.id
-                join sys_user_role ur on ur.role_id = rm.role_id
+                join sys_role r on r.id = rm.role_id and r.status = 1
+                join sys_user_role ur on ur.role_id = r.id
                 where ur.user_id = #{userId}
                   and m.status = 1
                 order by m.parent_id, m.order_num

@@ -100,6 +100,19 @@
   background: #f7fbff !important;
 }
 
+.role-table-card .ant-pagination {
+  margin: 18px 4px 0 !important;
+}
+
+.role-count-link.ant-btn {
+  height: auto;
+  padding: 0;
+  font-weight: 700;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
 .role-name-cell {
   display: grid;
   gap: 4px;

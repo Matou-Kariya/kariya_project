@@ -1,13 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import type { DbMenu } from "@/types/menu";
-
-type UserInfo = {
-  userId?: number;
-  username?: string;
-  roles?: string[];
-  permissions?: string[];
-};
+import type { UserInfo } from "@/types/auth";
 
 type UserState = {
   token: string | null;
@@ -24,17 +18,17 @@ const initialState: UserState = {
 };
 
 function collectPermissions(menus: DbMenu[]) {
-  const permissions: string[] = [];
+  const permissions = new Set<string>();
 
   const walk = (items: DbMenu[]) => {
     items.forEach((item) => {
-      if (item.permission) permissions.push(item.permission);
+      if (item.permission) permissions.add(item.permission);
       if (item.children?.length) walk(item.children);
     });
   };
 
   walk(menus);
-  return permissions;
+  return [...permissions];
 }
 
 const userSlice = createSlice({

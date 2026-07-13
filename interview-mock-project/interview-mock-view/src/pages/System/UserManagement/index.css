@@ -1,0 +1,29 @@
+.user-page { display: grid; gap: 16px; }
+.user-search-card, .user-table-card { border: 1px solid rgba(226,232,240,.82); border-radius: 22px; box-shadow: 0 18px 45px rgba(40,58,90,.045); }
+.user-search-card { background: radial-gradient(circle at 92% 0%, rgba(59,130,246,.08), transparent 28%), rgba(255,255,255,.92); }
+.user-search-card .ant-card-body { padding: 22px 28px; }
+.user-search-grid { display: grid; grid-template-columns: minmax(210px,250px) minmax(210px,250px) minmax(150px,170px) 1fr; align-items: center; gap: 16px; }
+.user-search-form .ant-form-item { margin-bottom: 0; }
+.user-search-form .ant-form-item-label > label { color: #58657a; font-weight: 750; }
+.user-search-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.user-table-card { overflow: hidden; background: rgba(255,255,255,.95); }
+.user-table-card .ant-card-head { min-height: 64px; padding-inline: 26px; border-bottom: 1px solid #edf2fb; }
+.user-table-card .ant-card-body { padding: 20px 26px 22px; }
+.user-table-title { display: grid; gap: 2px; }
+.user-table-title span { color: #1f2937; font-size: 17px; font-weight: 850; }
+.user-table-title small { color: #9aa6bc; font-size: 12px; }
+.user-table-card .ant-table-wrapper { overflow: hidden; border: 1px solid #edf2fb; border-radius: 18px; }
+.user-table-card .ant-table-thead > tr > th { height: 50px; color: #5b667a; font-weight: 850; background: #f8fbff !important; }
+.user-table-card .ant-table-tbody > tr > td { height: 64px; border-bottom: 1px solid #f0f4fa; }
+.user-table-card .ant-table-tbody > tr:hover > td { background: #f7fbff !important; }
+.user-table-card .ant-pagination { margin: 18px 4px 0 !important; }
+.user-name-cell { display: flex; align-items: center; gap: 12px; }
+.user-name-cell > span, .user-contact-cell { display: grid; min-width: 0; gap: 2px; }
+.user-name-cell strong { overflow: hidden; color: #263244; text-overflow: ellipsis; white-space: nowrap; }
+.user-name-cell small, .user-contact-cell small, .user-empty-text { color: #9aa6bc; font-size: 12px; }
+.user-contact-cell span { overflow: hidden; color: #465267; text-overflow: ellipsis; white-space: nowrap; }
+.user-table-actions { white-space: nowrap; }
+.user-action-link.ant-btn { height: auto; padding: 0 4px; font-weight: 700; background: transparent !important; border: 0 !important; box-shadow: none !important; }
+.user-action-link.ant-btn:hover, .user-action-link.ant-btn:focus { background: transparent !important; border: 0 !important; box-shadow: none !important; text-decoration: underline; }
+@media (max-width: 1100px) { .user-search-grid { grid-template-columns: repeat(2,minmax(220px,1fr)); } .user-search-actions { justify-content: flex-start; } }
+@media (max-width: 720px) { .user-search-grid { grid-template-columns: 1fr; } }

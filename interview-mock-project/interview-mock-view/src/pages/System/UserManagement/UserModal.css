@@ -1,0 +1,9 @@
+.user-editor-modal .ant-modal-content { padding: 0; overflow: hidden; border-radius: 14px; }
+.user-editor-modal .ant-modal-header { padding: 20px 24px 16px; margin: 0; border-bottom: 1px solid #edf2fb; }
+.user-editor-modal .ant-modal-body { max-height: min(620px, calc(100vh - 220px)); padding: 22px 24px 8px; overflow-y: auto; }
+.user-editor-modal .ant-modal-footer { padding: 14px 24px 20px; margin: 0; border-top: 1px solid #edf2fb; }
+.user-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+.user-editor-grid__full { grid-column: 1 / -1; }
+.user-editor-form .ant-form-item { margin-bottom: 18px; }
+.user-editor-form .ant-form-item-label > label { color: #465267; font-weight: 650; }
+@media (max-width: 680px) { .user-editor-grid { grid-template-columns: 1fr; } .user-editor-grid__full { grid-column: auto; } }

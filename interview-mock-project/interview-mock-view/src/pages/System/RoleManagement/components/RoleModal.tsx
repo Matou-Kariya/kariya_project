@@ -1,37 +1,22 @@
 import { Form, Input, Modal, Select } from "antd";
 import { useEffect } from "react";
+import type { RolePayload, RoleRecord } from "@/api/role";
 import "./RoleModal.css";
-
-const { TextArea } = Input;
-
-export type RoleRecord = {
-  id: number;
-  roleName: string;
-  roleKey: string;
-  description: string;
-  status: 0 | 1;
-  userCount: number;
-  createTime: string;
-};
 
 export type RoleModalMode = "create" | "edit";
 
-export type RoleFormValues = {
-  roleName: string;
-  roleKey: string;
-  description?: string;
-  status: 0 | 1;
-};
+export type RoleFormValues = RolePayload;
 
 type RoleModalProps = {
   open: boolean;
   mode: RoleModalMode;
   record?: RoleRecord | null;
+  confirmLoading?: boolean;
   onCancel: () => void;
-  onSubmit: (values: RoleFormValues) => void;
+  onSubmit: (values: RoleFormValues) => Promise<void> | void;
 };
 
-export function RoleModal({ open, mode, record, onCancel, onSubmit }: RoleModalProps) {
+export function RoleModal({ open, mode, record, confirmLoading = false, onCancel, onSubmit }: RoleModalProps) {
   const [form] = Form.useForm<RoleFormValues>();
 
   const isCreate = mode === "create";
@@ -51,7 +36,6 @@ export function RoleModal({ open, mode, record, onCancel, onSubmit }: RoleModalP
       form.setFieldsValue({
         roleName: record.roleName,
         roleKey: record.roleKey,
-        description: record.description,
         status: record.status,
       });
     }
@@ -59,7 +43,7 @@ export function RoleModal({ open, mode, record, onCancel, onSubmit }: RoleModalP
 
   const handleOk = async () => {
     const values = await form.validateFields();
-    onSubmit(values);
+    await onSubmit(values);
   };
 
   return (
@@ -68,6 +52,7 @@ export function RoleModal({ open, mode, record, onCancel, onSubmit }: RoleModalP
       open={open}
       onCancel={onCancel}
       onOk={handleOk}
+      confirmLoading={confirmLoading}
       width={680}
       centered
       destroyOnHidden
@@ -76,11 +61,11 @@ export function RoleModal({ open, mode, record, onCancel, onSubmit }: RoleModalP
       cancelText="取消"
     >
       <Form form={form} layout="vertical" className="role-modal-form" initialValues={{ status: 1 }}>
-        <Form.Item label="角色名称" name="roleName" rules={[{ required: true, message: "请输入角色名称" }]}>
+        <Form.Item label="角色名称" name="roleName" rules={[{ required: true, message: "请输入角色名称" }, { max: 50 }]}>
           <Input placeholder="例如：面试官" allowClear />
         </Form.Item>
 
-        <Form.Item label="角色标识" name="roleKey" rules={[{ required: true, message: "请输入角色标识" }]}>
+        <Form.Item label="角色标识" name="roleKey" tooltip="用于权限判断，例如 admin、interviewer" rules={[{ required: true, message: "请输入角色标识" }, { pattern: /^[A-Za-z][A-Za-z0-9_-]*$/, message: "请以字母开头，只使用字母、数字、下划线或中划线" }]}>
           <Input placeholder="例如：interviewer" allowClear />
         </Form.Item>
 
@@ -91,10 +76,6 @@ export function RoleModal({ open, mode, record, onCancel, onSubmit }: RoleModalP
               { label: "停用", value: 0 },
             ]}
           />
-        </Form.Item>
-
-        <Form.Item label="角色描述" name="description">
-          <TextArea rows={4} placeholder="请输入角色描述，用于说明该角色拥有的职责范围" showCount maxLength={120} />
         </Form.Item>
       </Form>
     </Modal>

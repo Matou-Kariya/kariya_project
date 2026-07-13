@@ -1,0 +1,13 @@
+.role-users-modal .ant-modal-content, .role-user-select-modal .ant-modal-content { padding: 0; overflow: hidden; border-radius: 16px; }
+.role-users-modal .ant-modal-header, .role-user-select-modal .ant-modal-header { padding: 20px 24px 16px; margin: 0; border-bottom: 1px solid #edf2fb; }
+.role-users-modal .ant-modal-body, .role-user-select-modal .ant-modal-body { padding: 20px 24px 24px; }
+.role-user-select-modal .ant-modal-footer { padding: 14px 24px 20px; margin: 0; border-top: 1px solid #edf2fb; }
+.role-users-title { color: #8a96aa; font-weight: 500; }
+.role-users-toolbar, .role-user-select-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.role-users-toolbar .ant-form-item, .role-user-select-toolbar .ant-form-item { width: 170px; margin: 0; }
+.role-users-toolbar__grow { flex: 1; }
+.role-users-modal .ant-table-wrapper, .role-user-select-modal .ant-table-wrapper { overflow: hidden; border: 1px solid #edf2fb; border-radius: 14px; }
+.role-user-name { display: grid; gap: 2px; }
+.role-user-name small { color: #98a2b3; }
+.role-user-action.ant-btn { height: auto; padding: 0; background: transparent !important; border: 0 !important; box-shadow: none !important; }
+@media (max-width: 760px) { .role-users-toolbar, .role-user-select-toolbar { flex-wrap: wrap; } .role-users-toolbar__grow { display: none; } }

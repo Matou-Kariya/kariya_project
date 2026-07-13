@@ -1,0 +1,11 @@
+.role-permission-modal .ant-modal-content { padding: 0; overflow: hidden; border-radius: 16px; }
+.role-permission-modal .ant-modal-header { padding: 20px 24px 16px; margin: 0; border-bottom: 1px solid #edf2fb; }
+.role-permission-modal .ant-modal-body { padding: 18px 24px 10px; }
+.role-permission-modal .ant-modal-footer { padding: 14px 24px 20px; margin: 0; border-top: 1px solid #edf2fb; }
+.role-permission-toolbar { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 12px; color: #8a96aa; font-size: 12px; }
+.role-permission-tree { height: min(480px, calc(100vh - 340px)); min-height: 300px; padding: 14px; overflow: auto; background: #fbfcfe; border: 1px solid #edf2fb; border-radius: 14px; }
+.role-permission-tree .ant-tree { background: transparent; }
+.role-permission-tree .ant-tree-node-content-wrapper { min-height: 34px; padding: 4px 8px !important; }
+.role-permission-node { display: inline-flex; align-items: center; gap: 10px; }
+.role-permission-node strong { color: #344054; font-weight: 650; }
+.role-permission-node small { color: #a0aabd; font-size: 10px; }

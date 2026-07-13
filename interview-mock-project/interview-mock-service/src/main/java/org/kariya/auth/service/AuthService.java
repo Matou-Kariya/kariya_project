@@ -39,7 +39,7 @@ public class AuthService {
         try {
             authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.username(), request.password()));
         } catch (DisabledException e) {
-            throw new BusinessException(1003, "账号已被禁用");
+            throw new BusinessException(ResultCode.USER_DISABLED);
         } catch (AuthenticationException e) {
             throw new BusinessException(ResultCode.USERNAME_OR_PASSWORD_ERROR);
         }

@@ -2,7 +2,8 @@
 .role-modal .ant-modal-content {
   padding: 0;
   background: #ffffff;
-  border-radius: 10px;
+  overflow: hidden;
+  border-radius: 14px;
   box-shadow:
     0 6px 16px 0 rgba(0, 0, 0, 0.08),
     0 3px 6px -4px rgba(0, 0, 0, 0.12),
@@ -10,11 +11,11 @@
 }
 
 .role-modal .ant-modal-header {
-  padding: 8px;
+  padding: 20px 24px 16px;
   margin-bottom: 0;
   background: transparent;
-  border-bottom: 0;
-  border-radius: 10px 10px 0 0;
+  border-bottom: 1px solid #edf2fb;
+  border-radius: 14px 14px 0 0;
 }
 
 .role-modal .ant-modal-title {
@@ -29,13 +30,13 @@
 }
 
 .role-modal .ant-modal-body {
-  padding: 8px;
+  padding: 22px 24px 6px;
 }
 
 .role-modal .ant-modal-footer {
-  padding: 8px;
+  padding: 14px 24px 20px;
   margin-top: 0;
-  border-top: 0;
+  border-top: 1px solid #edf2fb;
 }
 
 .role-modal .ant-modal-footer .ant-btn {

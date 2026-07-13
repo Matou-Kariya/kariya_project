@@ -1,18 +1,16 @@
 import axios from "axios";
 import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { message } from "@/services/antd";
+import { store } from "@/store";
+import { logout, setToken, setUserInfo } from "@/store/slices/userSlice";
+import type { LoginResponse } from "@/types/auth";
 import { clearAuthTokens, getAccessToken, saveAccessToken, saveUserInfo } from "./authStorage";
 
 export type Result<T> = {
   code: number;
+  error?: string | null;
   message: string;
   data: T;
-};
-
-type LoginResponse = {
-  accessToken: string;
-  expiresIn: number;
-  userInfo?: any;
 };
 
 type RetryConfig = InternalAxiosRequestConfig & {
@@ -24,18 +22,20 @@ let refreshPromise: Promise<LoginResponse> | null = null;
 
 const request = axios.create({
   baseURL: "/api",
-  timeout: 30000,
   withCredentials: true,
 });
 
 const refreshClient = axios.create({
   baseURL: "/api",
-  timeout: 10000,
   withCredentials: true,
 });
 
 function isPublicAuthUrl(url?: string) {
-  return Boolean(url?.includes("/auth/login") || url?.includes("/auth/refresh"));
+  return url === "/auth/login" || url === "/auth/refresh";
+}
+
+function toResult(error: AxiosError) {
+  return error.response?.data as Result<unknown> | undefined;
 }
 
 function handleUnauthorized() {
@@ -43,12 +43,13 @@ function handleUnauthorized() {
 
   unauthorizedHandled = true;
   clearAuthTokens();
+  store.dispatch(logout());
 
-  message.warning("登录已过期，请重新登录");
+  message.warning("登录已失效，请重新登录");
 
   setTimeout(() => {
     window.location.href = "/login";
-  }, 800);
+  }, 500);
 }
 
 async function refreshAccessToken() {
@@ -63,10 +64,9 @@ async function refreshAccessToken() {
         }
 
         saveAccessToken(result.data.accessToken);
-
-        if (result.data.userInfo) {
-          saveUserInfo(result.data.userInfo);
-        }
+        saveUserInfo(result.data.userInfo);
+        store.dispatch(setToken(result.data.accessToken));
+        store.dispatch(setUserInfo(result.data.userInfo));
 
         return result.data;
       })
@@ -95,59 +95,69 @@ async function handleResponse(response: AxiosResponse<Result<unknown>>) {
   const config = response.config as RetryConfig;
 
   if (result.code === 0) {
+    if (config.url === "/auth/login") unauthorizedHandled = false;
     return result.data;
   }
 
-  if (result.code === 401) {
-    if (!config._retry && !isPublicAuthUrl(config.url)) {
-      try {
-        config._retry = true;
-
-        const refreshed = await refreshAccessToken();
-        config.headers.Authorization = `Bearer ${refreshed.accessToken}`;
-
-        return request(config);
-      } catch {
-        handleUnauthorized();
-        return Promise.reject(new Error("登录已过期"));
-      }
+  if (
+    result.error === "TOKEN_EXPIRED" &&
+    !config._retry &&
+    !config.skipAuthRefresh &&
+    !isPublicAuthUrl(config.url)
+  ) {
+    try {
+      config._retry = true;
+      const refreshed = await refreshAccessToken();
+      config.headers.Authorization = `Bearer ${refreshed.accessToken}`;
+      return request(config);
+    } catch {
+      handleUnauthorized();
+      return Promise.reject(new Error("登录已过期"));
     }
-
-    handleUnauthorized();
-    return Promise.reject(new Error(result.message || "登录已过期"));
   }
 
-  message.error(result.message || "请求失败");
+  if (result.code === 401 || result.error === "TOKEN_INVALID" || result.error === "REFRESH_TOKEN_INVALID") {
+    if (!isPublicAuthUrl(config.url)) handleUnauthorized();
+    return Promise.reject(new Error(result.message || "登录已失效"));
+  }
+
+  if (!config.silentError) message.error(result.message || "请求失败");
   return Promise.reject(new Error(result.message || "请求失败"));
 }
 
 async function handleError(error: AxiosError) {
-  const status = error.response?.status;
   const config = error.config as RetryConfig | undefined;
+  const result = toResult(error);
 
-  if (status === 401) {
-    if (config && !config._retry && !isPublicAuthUrl(config.url)) {
+  if (error.response?.status === 401 && config) {
+    if (
+      result?.error === "TOKEN_EXPIRED" &&
+      !config._retry &&
+      !config.skipAuthRefresh &&
+      !isPublicAuthUrl(config.url)
+    ) {
       try {
         config._retry = true;
-
         const refreshed = await refreshAccessToken();
         config.headers.Authorization = `Bearer ${refreshed.accessToken}`;
-
         return request(config);
       } catch {
         handleUnauthorized();
-        return Promise.reject(error);
+        return Promise.reject(new Error(result?.message || "登录已过期"));
       }
     }
 
-    handleUnauthorized();
-    return Promise.reject(error);
+    if (!isPublicAuthUrl(config.url)) handleUnauthorized();
+    return Promise.reject(new Error(result?.message || error.message || "登录失败"));
   }
 
-  message.error(error.message || "网络错误");
-  return Promise.reject(error);
+  if (!config?.silentError) message.error(result?.message || error.message || "网络错误");
+  return Promise.reject(new Error(result?.message || error.message || "网络错误"));
 }
 
-request.interceptors.response.use(handleResponse as any, handleError);
+request.interceptors.response.use(
+  handleResponse as unknown as (response: AxiosResponse) => AxiosResponse,
+  handleError,
+);
 
 export default request;

@@ -1,4 +1,4 @@
-import type { UserInfo } from "@/api/auth";
+import type { UserInfo } from "@/types/auth";
 
 const ACCESS_TOKEN_KEY = "accessToken";
 const USER_INFO_KEY = "userInfo";

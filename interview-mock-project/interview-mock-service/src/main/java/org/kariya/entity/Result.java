@@ -1,45 +1,52 @@
 package org.kariya.entity;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 public class Result<T> {
-
     private Integer code;
-
+    private String error;
     private String message;
-
     private T data;
 
+    public Result(Integer code, String error, String message, T data) {
+        this.code = code;
+        this.error = error;
+        this.message = message;
+        this.data = data;
+    }
+
     public static <T> Result<T> success() {
-        return new Result<>(ResultCode.SUCCESS.getCode(), ResultCode.SUCCESS.getMessage(), null);
+        return success(null);
     }
 
     public static <T> Result<T> success(T data) {
-        return new Result<>(ResultCode.SUCCESS.getCode(), ResultCode.SUCCESS.getMessage(), data);
+        return new Result<>(ResultCode.SUCCESS.getCode(), null, ResultCode.SUCCESS.getMessage(), data);
     }
 
     public static <T> Result<T> success(String message, T data) {
-        return new Result<>(ResultCode.SUCCESS.getCode(), message, data);
+        return new Result<>(ResultCode.SUCCESS.getCode(), null, message, data);
     }
 
     public static <T> Result<T> fail() {
-        return new Result<>(ResultCode.FAIL.getCode(), ResultCode.FAIL.getMessage(), null);
+        return fail(ResultCode.FAIL);
     }
 
     public static <T> Result<T> fail(String message) {
-        return new Result<>(ResultCode.FAIL.getCode(), message, null);
+        return new Result<>(ResultCode.FAIL.getCode(), ResultCode.FAIL.getError(), message, null);
     }
 
     public static <T> Result<T> fail(Integer code, String message) {
-        return new Result<>(code, message, null);
+        return new Result<>(code, "BUSINESS_ERROR", message, null);
+    }
+
+    public static <T> Result<T> fail(Integer code, String error, String message) {
+        return new Result<>(code, error, message, null);
     }
 
     public static <T> Result<T> fail(ResultCode resultCode) {
-        return new Result<>(resultCode.getCode(), resultCode.getMessage(), null);
+        return new Result<>(resultCode.getCode(), resultCode.getError(), resultCode.getMessage(), null);
     }
 }

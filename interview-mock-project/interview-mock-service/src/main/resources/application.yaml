@@ -39,7 +39,7 @@ spring:
           enabled: true
           max-active: 8
           max-idle: 8
-          min-idle: 0
+          min-idle: 2
           max-wait: 3000ms
 
 server:
@@ -48,12 +48,11 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:kariya-interview-mock-admin-jwt-secret} # replace-with-your-local-jwt-secret
-  access-token-expire-minutes: 15
 
 auth:
   access-token-expire-minutes: 15
   refresh-token-expire-hours: 8
-  remember-me-ref resh-token-expire-days: 14
+  remember-me-refresh-token-expire-days: 14
   refresh-token-cookie-name: refresh_token
   device-id-cookie-name: device_id
   refresh-token-cookie-path: /

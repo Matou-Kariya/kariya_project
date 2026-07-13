@@ -1,4 +1,5 @@
 import request from "@/utils/request";
+import type { LoginResponse, UserInfo } from "@/types/auth";
 
 export type LoginParams = {
   username: string;
@@ -7,21 +8,13 @@ export type LoginParams = {
   deviceId?: string;
 };
 
-export type UserInfo = {
-  userId: number;
-  username: string;
-  roles: string[];
-  permissions: string[];
-};
-
-export type LoginResponse = {
-  accessToken: string;
-  expiresIn: number;
-  userInfo: UserInfo;
-};
+export type { LoginResponse, UserInfo } from "@/types/auth";
 
 export function loginApi(data: LoginParams) {
-  return request.post<LoginResponse, LoginResponse>("/auth/login", data);
+  return request.post<LoginResponse, LoginResponse>("/auth/login", data, {
+    silentError: true,
+    skipAuthRefresh: true,
+  });
 }
 
 export function refreshTokenApi() {

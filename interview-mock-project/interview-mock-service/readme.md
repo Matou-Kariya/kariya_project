@@ -1,255 +1,407 @@
 # 后端项目说明
 
-这是项目的后端服务，当前重点提供账号登录、JWT 身份认证、Refresh Token 会话、退出登录、用户角色/权限加载和权限菜单查询等通用能力。业务模块可以在这套基础能力上继续扩展。
+这是后台管理系统的 Spring Boot 单体服务，当前主要负责账号认证、JWT 鉴权、Refresh 会话、用户角色权限加载，以及菜单查询和菜单管理。
 
-本文不依赖固定 Java 包名。下文使用 `<base-package>` 表示项目迁移后实际采用的根包，因此修改组织名或根包名不会影响文档的阅读方式。
+本文使用 `<base-package>` 表示 Java 根包。这样文档不会与某个组织名或个人命名绑定，迁移或开源时只需要调整代码包名和构建坐标。
 
-## 当前能力
+## 1. 当前完成度
 
-已经接通：
+已经实现：
 
+- 从数据库读取用户并使用 BCrypt 校验密码；
+- 加载用户角色和菜单权限；
 - Spring Security 无状态认证；
-- BCrypt 密码校验；
-- 短期 JWT Access Token；
-- 基于 HttpOnly Cookie 的 Refresh Token；
-- Redis 登录会话、Refresh Token 轮换与哈希索引；
-- Access Token 黑名单与 Token Version 全局失效机制；
-- 用户、角色、菜单和权限数据加载；
-- 菜单树查询及菜单新增、修改、删除；
+- Access Token JWT 签发和校验；
+- Refresh Token 随机生成、哈希保存、Cookie 下发和 Rotation；
+- Redis 登录会话、刷新索引、已使用 Token 标记、Access Token 黑名单；
+- `rememberMe` 对 Refresh 会话时长的控制；
+- 当前用户信息接口；
 - 管理员全部菜单、普通用户按角色查询菜单；
-- 统一响应结构和全局异常处理；
-- Jasypt 敏感配置解密。
+- 菜单树查询和菜单增删改；
+- 统一业务响应和全局异常处理。
 
-当前尚未完整实现：
+尚未完整实现：
 
-- 用户、角色的增删改查接口；
-- 忘记密码、注册、第三方登录；
-- 数据库建表/迁移脚本；
-- 完整的接口级方法权限注解和业务接口；
-- 完整的自动化测试与接口文档。
+- 用户管理和角色管理的完整 Controller/Service/API；
+- 用户、角色、菜单授权关系的管理接口；
+- 通用审计日志、登录日志和操作日志；
+- 限流、验证码、登录失败次数锁定等进一步安全措施；
+- 数据库迁移脚本和自动初始化数据；
+- 完整的自动化测试。
 
-## 技术栈
+## 2. 技术栈与运行环境
 
 - Java 17
 - Spring Boot 3.3
-- Spring Web / Spring Security
-- MyBatis-Plus 3.5
+- Spring Web
+- Spring Security
+- MyBatis-Plus
 - MySQL
-- Redis + Lettuce
-- Druid
-- JJWT 0.12
+- Spring Data Redis / Lettuce
+- JJWT
 - Jasypt
+- Druid
 - Maven
 
-## 快速启动
+本地运行前需要准备：
 
-### 1. 环境要求
+1. JDK 17；
+2. Maven；
+3. 可访问的 MySQL；
+4. 可访问的 Redis；
+5. 解密配置所需的 Jasypt 密钥；
+6. 长度足够的 JWT HMAC 密钥。
 
-- JDK 17
-- Maven 3.9 或兼容版本（项目当前未提供 Maven Wrapper）
-- MySQL 8.x
-- Redis 6.x 或更高版本
+## 3. 快速启动
 
-### 2. 准备数据库
+在后端目录执行：
 
-项目当前没有附带 SQL 初始化脚本，需要准备以下表：
-
-| 表 | 用途 | 关键字段/关系 |
-| --- | --- | --- |
-| `sys_user` | 用户 | 用户名、BCrypt 密码、状态等 |
-| `sys_role` | 角色 | 角色名称、角色标识、状态 |
-| `sys_menu` | 目录、页面与按钮权限 | 父级、路径、组件、类型、权限标识、状态 |
-| `sys_user_role` | 用户与角色关系 | `user_id`、`role_id` |
-| `sys_role_menu` | 角色与菜单关系 | `role_id`、`menu_id` |
-
-实体字段采用驼峰命名，MyBatis-Plus 默认映射到下划线列，例如 `createTime` 对应 `create_time`。用户密码必须使用 BCrypt 哈希，不能直接保存明文。
-
-菜单类型约定：`0` 为目录、`1` 为页面、`2` 为按钮权限；状态 `1` 为启用。`admin` 角色标识会获得全部启用菜单，其他角色按用户与角色、角色与菜单关系查询。
-
-### 3. 配置连接与密钥
-
-主要配置位于 `src/main/resources/application.yaml`。启动前至少检查：
-
-- MySQL URL、用户名和密码；
-- Redis 主机、端口、数据库和密码；
-- JWT 签名密钥；
-- Access Token 与 Refresh Token 有效期；
-- Cookie 的 Secure、SameSite 和 Path。
-
-仓库中的连接信息不应直接用于新的环境。建议通过外部配置、环境变量或 Jasypt 密文提供敏感值，并为每个环境使用独立密钥。
-
-当前启动类按以下顺序寻找 Jasypt 主密码：
-
-1. JVM 参数 `jasypt.encryptor.password`；
-2. 环境变量 `JASYPT_ENCRYPTOR_PASSWORD`；
-3. classpath 根目录的 `.jasypt.password` 文件。
-
-PowerShell 启动示例：
-
-```powershell
-$env:JASYPT_ENCRYPTOR_PASSWORD = "your-jasypt-master-password"
-$env:JWT_SECRET = "replace-with-a-long-random-secret-at-least-32-bytes"
+```bash
 mvn spring-boot:run
 ```
 
-也可以使用 JVM 参数：
+或者先构建再运行：
 
 ```bash
-mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Djasypt.encryptor.password=your-password"
-```
-
-默认端口为 `9999`。启动后可通过前端开发服务器的 `/api` 代理访问，或直接访问 `http://localhost:9999`。
-
-### 4. 构建和测试
-
-```bash
-mvn test
 mvn clean package
 java -jar target/*.jar
 ```
 
-当前测试主要用于辅助生成 Jasypt 密文，还没有覆盖完整鉴权流程。将项目用于生产前，应补充登录、刷新、重放、退出、权限和异常场景测试。
-
-## 建议阅读顺序
-
-源码位于 `src/main/java/<base-package>/`。想快速理解项目，可以依次查看：
-
-1. `config/SecurityConfig.java`：哪些接口公开、过滤器顺序、密码编码器；
-2. `auth/controller/LoginController.java`：登录、刷新、退出、当前用户接口；
-3. `auth/service/AuthService.java`：Access/Refresh Token 的完整生命周期；
-4. `auth/filter/JwtAuthenticationFilter.java`：每次请求如何校验 JWT；
-5. `auth/service/LoginUserDetailsService.java`：用户、角色和权限如何从数据库加载；
-6. `auth/service/RefreshTokenService.java`：Redis 会话与 Refresh Token 索引；
-7. `auth/service/TokenVersionService.java`：如何让用户历史 Token 整体失效；
-8. `system/service/MenuService.java`：菜单查询、树构建和路径整理；
-9. `entity/Result.java` 与 `exception/GlobalExceptionHandler.java`：统一响应和异常处理。
-
-## 目录结构
+默认服务端口为：
 
 ```text
-src/main/java/<base-package>/
-├─ auth/
-│  ├─ controller/          # 登录、刷新、退出、当前用户接口
-│  ├─ entity/              # 登录参数、响应、登录用户与 Redis 会话模型
-│  ├─ filter/              # JWT 请求过滤器
-│  └─ service/             # 认证、刷新会话、用户加载、Token Version
-├─ config/                 # Spring Security 与鉴权配置
-├─ constant/               # Redis Key 等常量
-├─ entity/                 # 统一响应与响应码
-├─ exception/              # 业务异常和全局异常处理
-├─ system/
-│  ├─ controller/          # 系统模块接口
-│  ├─ entity/              # 用户、角色、菜单实体及菜单视图对象
-│  ├─ mapper/              # MyBatis-Plus Mapper 与权限查询 SQL
-│  └─ service/             # 菜单业务逻辑
-├─ utils/                  # JWT 生成与解析
-└─ StartUpApplication.java # 应用入口及 Jasypt 主密码加载
+http://localhost:9999
 ```
 
-根包名可以调整，但启动类应位于业务包的共同父级，或显式配置组件扫描和 Mapper 扫描范围。
+前端开发代理会将 `/api/auth/login` 转发为后端的 `/auth/login`，所以后端 Controller 本身没有 `/api` 前缀。
 
-## 登录鉴权设计
+常用验证命令：
 
-系统采用“短期 Access Token + 长期 Refresh Token”的组合：
+```bash
+mvn test
+mvn clean package
+```
 
-- Access Token 是 JWT，客户端通过 `Authorization: Bearer <token>` 携带；
-- Refresh Token 是随机字符串，仅通过 HttpOnly Cookie 传输；
-- Redis 保存登录会话，但 Spring Security 本身不创建 HttpSession；
-- Refresh Token 在 Redis 中只保存 SHA-256 哈希，不保存原文；
-- 每次刷新都会轮换 Refresh Token，并更新 Cookie 与 Redis 会话。
+## 4. 配置与密钥
 
-### 登录
+主配置文件为 `src/main/resources/application.yaml`，包含：
+
+- 数据源与 Druid 连接池；
+- Redis 地址、密码、库和连接池；
+- 服务端口；
+- JWT 签名密钥与有效期；
+- Refresh 会话与 Cookie 属性；
+- MyBatis-Plus 配置。
+
+### 4.1 Jasypt 解密密钥
+
+启动类会按以下优先级读取 Jasypt 密钥：
+
+1. JVM 系统属性 `jasypt.encryptor.password`；
+2. 环境变量 `JASYPT_ENCRYPTOR_PASSWORD`；
+3. classpath 根目录下的 `.jasypt.password` 文件。
+
+推荐本地使用环境变量：
+
+```powershell
+$env:JASYPT_ENCRYPTOR_PASSWORD="你的本地解密密钥"
+mvn spring-boot:run
+```
+
+也可以在 IDE 的运行配置中添加环境变量。不要将明文密钥或 `.jasypt.password` 提交到 Git。
+
+如果公司环境能启动、本地无法绑定数据库或 Redis 密码，优先确认本地是否提供了同一 Jasypt 密钥，以及文件是否位于运行时 classpath，而不是仅存在于某个固定的绝对路径。
+
+### 4.2 JWT 密钥
+
+JWT 密钥可通过环境变量覆盖：
+
+```powershell
+$env:JWT_SECRET="至少 32 字节的随机密钥"
+```
+
+HMAC-SHA 密钥过短会触发 `WeakKeyException`。生产环境不要使用仓库中的开发默认值，也不要在多个无关环境共用同一密钥。
+
+### 4.3 Cookie 配置
+
+当前可配置项包括：
+
+- Refresh Cookie 名称；
+- Device Cookie 名称；
+- Cookie Path；
+- `Secure`；
+- `SameSite`；
+- 普通登录 Refresh 时长；
+- “记住我” Refresh 时长；
+- Refresh Token 重用宽限时间。
+
+本地 HTTP 开发时通常使用 `cookie-secure: false`；HTTPS 生产环境应改为 `true`。跨站部署时还需要重新评估 `SameSite`、CORS 和 CSRF 策略。
+
+## 5. 建议阅读顺序
+
+第一次阅读后端代码，建议按请求经过的方向看：
+
+1. `StartUpApplication`：启动与 Jasypt 密钥加载；
+2. `config/SecurityConfig`：哪些接口公开、认证过滤器在哪里；
+3. `auth/controller/LoginController`：登录、刷新、登出、当前用户接口；
+4. `auth/service/AuthService`：认证业务总编排；
+5. `auth/service/LoginUserDetailsService`：用户、角色、权限如何从数据库加载；
+6. `auth/filter/JwtAuthenticationFilter`：每个受保护请求如何验证 Access Token；
+7. `auth/service/RefreshTokenService`：Redis 会话和 Refresh Rotation；
+8. `utils/JwtTokenUtil`：JWT Claims、签名和过期时间；
+9. `system/controller/MenuController`：菜单接口与方法权限；
+10. `system/service/MenuService`：管理员/普通用户菜单差异和树构造；
+11. `system/mapper`：具体 SQL 和表关系；
+12. `entity/Result`、`exception/GlobalExceptionHandler`：统一响应和异常转换。
+
+## 6. 目录与分层职责
+
+以下路径省略 Java 根包，实际位于 `src/main/java/<base-package>/`：
+
+```text
+<base-package>/
+├─ auth/
+│  ├─ controller/          # 登录、刷新、登出、当前用户 HTTP 接口
+│  ├─ entity/              # 登录请求、登录用户、会话和响应模型
+│  ├─ filter/              # JWT 请求过滤器
+│  └─ service/             # 认证、用户加载、Refresh 会话、Token 版本
+├─ config/                 # Security 和认证配置属性
+├─ constant/               # Redis key 等常量
+├─ entity/                 # 通用 Result 和 ResultCode
+├─ exception/              # 业务异常与全局异常处理
+├─ system/
+│  ├─ controller/          # 系统管理接口
+│  ├─ entity/              # 用户、角色、菜单实体和 DTO/VO
+│  ├─ mapper/              # MyBatis-Plus Mapper 与 SQL
+│  └─ service/             # 菜单等系统业务
+└─ utils/                  # JWT 等通用工具
+```
+
+分层约定：
+
+- Controller 负责 HTTP 参数、Cookie 和响应，不堆积业务规则；
+- Service 负责事务和业务流程；
+- Mapper 负责数据库访问；
+- Entity 映射数据库表，Request/DTO 接收输入，VO/Response 输出数据；
+- Filter 负责请求进入 Controller 前的通用认证；
+- `BusinessException` 表达可预期业务失败，全局异常处理器负责转成统一响应。
+
+## 7. 数据模型与权限关系
+
+当前核心表：
+
+| 表 | 作用 |
+| --- | --- |
+| `sys_user` | 用户、BCrypt 密码、状态和基本资料 |
+| `sys_role` | 角色名称、角色标识和状态 |
+| `sys_menu` | 目录、页面、按钮权限和路由信息 |
+| `sys_user_role` | 用户与角色多对多关系 |
+| `sys_role_menu` | 角色与菜单/权限多对多关系 |
+
+关系可以理解为：
+
+```text
+用户
+  -> sys_user_role
+  -> 角色
+  -> sys_role_menu
+  -> 菜单或按钮权限
+```
+
+`role_key` 会转换成 Spring Security 的 `ROLE_<roleKey>`；菜单表中的 `permission` 会直接转换成 Authority。
+
+例如：
+
+```java
+@PreAuthorize("hasRole('admin') or hasAuthority('system:menu:list')")
+```
+
+`hasRole('admin')` 实际检查 `ROLE_admin`，而 `hasAuthority` 检查原始权限字符串。
+
+数据库中的密码必须是 BCrypt 密文。登录时前端发送 HTTPS 保护下的明文密码，Spring Security 使用 `PasswordEncoder.matches(明文, 数据库密文)` 校验；不能对已有 BCrypt 密文再次 encode 后比较，因为 BCrypt 每次生成的盐不同。
+
+## 8. Spring Security 总体结构
+
+`SecurityConfig` 的关键设置：
+
+- 关闭默认 CSRF；
+- `SessionCreationPolicy.STATELESS`，不使用 HttpSession 保存登录态；
+- `/auth/login` 和 `/auth/refresh` 匿名可访问；
+- 其他请求必须认证；
+- `DaoAuthenticationProvider` 使用 `LoginUserDetailsService` + BCrypt；
+- `JwtAuthenticationFilter` 位于用户名密码过滤器之前；
+- 启用方法级权限，支持 `@PreAuthorize`。
+
+“无状态”是指应用服务器不使用 HttpSession。项目仍然在 Redis 保存 Refresh 登录会话，用来实现续期、登出失效、多设备和 Token Rotation。
+
+## 9. 登录鉴权核心流程
+
+### 9.1 登录
 
 ```text
 POST /auth/login
-  -> Spring Security 校验用户名与 BCrypt 密码
+  -> LoginController 接收账号、密码、rememberMe、可选 deviceId
+  -> AuthService 调用 AuthenticationManager
+  -> LoginUserDetailsService 查询 sys_user
   -> 查询用户角色和菜单权限
-  -> 生成短期 JWT Access Token
+  -> BCryptPasswordEncoder 校验密码
+  -> 生成 Access Token JWT
   -> 生成随机 Refresh Token
-  -> Redis 保存设备会话与 Refresh Token 哈希索引
-  -> Refresh Token 写入 HttpOnly Cookie
-  -> 返回 Access Token、有效秒数和用户信息
+  -> Refresh Token 做 SHA-256 哈希
+  -> Redis 保存 LoginSession 和 Refresh 索引
+  -> 响应体返回 Access Token 与 UserInfo
+  -> Set-Cookie 写入 Refresh Token 和 deviceId
 ```
 
-登录请求：
+账号状态不是启用时抛出“账号已被禁用”；其他认证失败统一返回“账号或密码错误”，避免泄露账号是否存在。
+
+当前 `rememberMe` 的作用：
+
+- 未勾选：使用较短的 Refresh 会话时长；
+- 勾选：使用按天计算的较长 Refresh 会话时长；
+- Access Token 时长不因 `rememberMe` 改变。
+
+### 9.2 Access Token 内容
+
+JWT 当前包含：
+
+- `sub`：用户 ID；
+- `username`；
+- `roles`；
+- `tokenVersion`；
+- `deviceId`；
+- `type=access`；
+- `jti`：Token 唯一 ID；
+- 签发时间和过期时间。
+
+虽然 JWT 中包含角色，但过滤器仍会通过用户名重新加载当前用户及权限，最终放入 `SecurityContext` 的是数据库当前状态。这会增加数据库查询，但能更快反映用户禁用或权限变化。
+
+### 9.3 受保护请求
+
+```text
+Authorization: Bearer <accessToken>
+  -> JwtAuthenticationFilter
+  -> 校验签名和过期时间
+  -> 校验 type=access
+  -> Redis 检查 jti 黑名单
+  -> Redis 检查用户 tokenVersion
+  -> 重新加载用户、角色和权限
+  -> 构造 Authentication 写入 SecurityContext
+  -> Controller / @PreAuthorize
+```
+
+JWT 过期、签名错误、类型错误、黑名单命中或 Token 版本变化时，过滤器直接返回 HTTP 401：
 
 ```json
 {
-  "username": "your-account",
-  "password": "your-password",
-  "rememberMe": true,
-  "deviceId": null
+  "code": 401,
+  "message": "登录已过期，请重新登录",
+  "data": null
 }
 ```
 
-`rememberMe = false` 时 Refresh Token 默认有效 8 小时；为 `true` 时默认有效 14 天。Access Token 默认有效 15 分钟。实际值以环境配置为准。
+### 9.4 Refresh Token 与 Rotation
 
-### 请求认证
+Refresh Token 本身不是 JWT，而是 32 字节安全随机数的 URL-safe Base64 文本。浏览器 Cookie 保存原文，Redis 只保存它的 SHA-256 哈希和会话信息。
 
-JWT 过滤器会依次检查：
-
-1. Bearer Token 是否存在且签名、有效期正确；
-2. Token 类型是否为 `access`；
-3. JWT 的 `jti` 是否进入 Redis 黑名单；
-4. JWT 中的 `tokenVersion` 是否与 Redis 当前版本一致；
-5. 用户是否仍存在且启用；
-6. 从数据库重新加载角色和权限，写入 Spring Security 上下文。
-
-JWT 中包含用户 ID、用户名、角色、设备 ID、Token Version 和唯一 `jti`。接口授权应使用当前 Security Context 中重新加载的权限，不应只信任 JWT 中的角色数据。
-
-### 刷新与轮换
+刷新流程：
 
 ```text
-POST /auth/refresh（浏览器自动携带 Refresh Token Cookie）
-  -> 计算 Refresh Token 哈希并查询 Redis 索引
-  -> 校验会话、用户状态和 Token Version
-  -> 删除旧会话与旧索引
-  -> 标记旧 Refresh Token 已使用
-  -> 生成新的 Access Token 与 Refresh Token
-  -> 保存新会话并覆盖 Cookie
+POST /auth/refresh
+  -> 从 HttpOnly Cookie 读取 Refresh Token
+  -> 计算哈希并查 Refresh 索引
+  -> 加载 LoginSession
+  -> 校验会话中的哈希和 tokenVersion
+  -> 重新加载用户、角色和权限
+  -> 生成新 Access Token
+  -> 生成新 Refresh Token
+  -> 删除旧会话/索引
+  -> 短时间标记旧 Refresh 已使用
+  -> 保存新会话/索引
+  -> 覆盖浏览器 Cookie
 ```
 
-`refresh-reuse-grace-seconds` 是旧 Refresh Token 使用标记的保留时间，用来识别短时间内的重复使用。前端也会合并并发刷新请求。
+这叫 Refresh Token Rotation：每次刷新后旧 Refresh Token 不再长期有效。`refreshReuseGraceSeconds` 用来降低多标签页或并发请求带来的误判风险；值越大，并发容忍越高，但旧 Token 可重用窗口也越长。
 
-### 退出
+### 9.5 Redis Key 的用途
 
-`POST /auth/logout` 会删除当前 Refresh Token 对应的 Redis 会话，将当前 Access Token 的 `jti` 写入黑名单直到 JWT 自然过期，并清除 Refresh Token 与设备 Cookie。
-
-### Token Version
-
-每个用户在 Redis 中有一个 Token Version。JWT 和登录会话都记录签发时的版本；提高该版本后，之前签发的 Access Token 和 Refresh Token 都会失效。该机制适合实现“强制用户全部下线”“修改密码后失效所有会话”等功能，目前已提供底层服务，尚未暴露管理接口。
-
-## Redis 数据
-
-Redis Key 使用以下逻辑前缀：
-
-| 前缀 | 作用 | TTL |
+| Key 前缀 | Value | 作用 |
 | --- | --- | --- |
-| `login:session:` | 用户与设备维度的登录会话 | Refresh Token 有效期 |
-| `login:refresh:index:` | Refresh Token 哈希到会话的索引 | Refresh Token 有效期 |
-| `login:refresh:used:` | 已使用旧 Refresh Token 的短期标记 | 重用检测宽限时间 |
-| `token:blacklist:` | 已退出的 Access Token `jti` | Access Token 剩余时间 |
-| `user:tokenVersion:` | 用户当前 Token Version | 当前未设置过期时间 |
+| `login:session:` | JSON LoginSession | 某用户某设备的登录会话 |
+| `login:refresh:index:` | `userId:deviceId` | 由 Refresh 哈希反查会话 |
+| `login:refresh:used:` | `1` | 短期记录已轮换的 Refresh Token |
+| `token:blacklist:` | `1` | 主动登出的 Access Token 黑名单 |
+| `user:tokenVersion:` | 版本数字 | 批量让某用户旧 Token 失效 |
 
-不要在日志中输出原始 Refresh Token、JWT、用户密码或 Jasypt 主密码。
+### 9.6 登出
 
-## 接口概览
+`POST /auth/logout` 会：
 
-除登录和刷新外，当前所有请求都需要有效 Access Token。
+1. 根据 Refresh Cookie 删除 Redis 登录会话；
+2. 解析当前 Access Token；
+3. 按其剩余过期时间写入黑名单；
+4. 将 Refresh 和 Device Cookie 的 `maxAge` 设为 0。
 
-| 方法 | 路径 | 是否公开 | 说明 |
+Cookie 清除时的 name、path、domain 等属性必须与写入时一致，否则浏览器中可能残留 Cookie。
+
+## 10. 当前认证接口
+
+| 方法 | 路径 | 是否匿名 | 作用 |
 | --- | --- | --- | --- |
-| `POST` | `/auth/login` | 是 | 账号密码登录，设置 Refresh Token Cookie |
-| `POST` | `/auth/refresh` | 是 | 使用 Cookie 刷新并轮换 Token |
-| `POST` | `/auth/logout` | 否 | 删除会话、拉黑当前 Access Token、清除 Cookie |
-| `GET` | `/auth/me` | 否 | 获取当前用户、角色和权限 |
-| `GET` | `/system/menu/user` | 否 | 获取当前用户树形菜单 |
-| `GET` | `/system/menu/list` | 否 | 获取菜单管理树，包含启用和停用数据 |
-| `POST` | `/system/menu` | 否 | 新增目录、页面菜单或按钮权限 |
-| `PUT` | `/system/menu/{id}` | 否 | 修改菜单及其父级、路由、组件、权限等字段 |
-| `DELETE` | `/system/menu/{id}` | 否 | 删除无子节点的菜单并清理角色授权关系 |
+| POST | `/auth/login` | 是 | 账号密码登录，签发 Token |
+| POST | `/auth/refresh` | 是 | 使用 Refresh Cookie 轮换并签发新 Token |
+| POST | `/auth/logout` | 否 | 删除会话、拉黑 Access Token、清 Cookie |
+| GET | `/auth/me` | 否 | 返回当前用户 ID、用户名、角色和权限 |
 
-统一响应：
+登录响应体不会返回 Refresh Token；Refresh Token 只通过 HttpOnly Cookie 下发。
+
+## 11. 菜单与动态路由后端逻辑
+
+### 11.1 菜单类型
+
+| `menu_type` | 含义 | 数据要求 |
+| --- | --- | --- |
+| `0` | 目录 | 必须有 path，不要求 component |
+| `1` | 页面 | 必须有 path 和 component |
+| `2` | 按钮权限 | 必须有 permission，不作为路由页面 |
+
+`component` 是相对于前端 `src/pages` 的目录，例如 `System/UserManagement`。不要填写前端绝对路径，也不要包含 `/index.tsx`。
+
+### 11.2 当前用户菜单
+
+`GET /system/menu/user` 的规则：
+
+- 角色列表包含 `admin`：返回全部启用菜单；
+- 其他用户：通过 `sys_user_role -> sys_role_menu -> sys_menu` 查询已授权且启用的菜单；
+- Service 将平铺数据转换成树；
+- 用户菜单响应会把相对 path 递归拼接为完整 path。
+
+例如父目录 `/system`，子页面 `user`，返回前端时子页面 path 为 `/system/user`。
+
+### 11.3 菜单管理接口
+
+| 方法 | 路径 | 作用 |
+| --- | --- | --- |
+| GET | `/system/menu/user` | 当前用户可用菜单树 |
+| GET | `/system/menu/list` | 管理页面所需的完整菜单树 |
+| POST | `/system/menu` | 新增菜单 |
+| PUT | `/system/menu/{id}` | 修改菜单 |
+| DELETE | `/system/menu/{id}` | 删除菜单 |
+
+菜单管理接口要求管理员角色或 `system:menu:list` 权限。当前新增、修改、删除复用了 list 权限，后续可以细分为 `add/edit/delete`。
+
+Service 已处理：
+
+- 名称、类型、状态、排序和必填字段校验；
+- 不能把按钮作为父节点；
+- 不能把菜单移动到自己的下级；
+- 有子节点的菜单不能改成按钮；
+- 有子节点时禁止直接删除；
+- 删除菜单前清理对应角色菜单关系。
+
+## 12. 统一响应与异常
+
+普通 Controller 使用：
 
 ```json
 {
@@ -259,101 +411,181 @@ Redis Key 使用以下逻辑前缀：
 }
 ```
 
-常用响应码：`0` 成功、`400` 参数错误、`401` 登录失效、`403` 无权限、`500` 系统异常、`1001` 账号或密码错误、`1002` Refresh Token 失效、`1003` 账号被禁用。
+常见业务码：
 
-注意：部分业务异常使用 HTTP 200 返回、通过响应体 `code` 表示失败；JWT 过滤器校验失败则直接返回 HTTP 401。客户端需要同时处理 HTTP 状态码和响应体业务码。
+| code | 含义 |
+| --- | --- |
+| 0 | 成功 |
+| 400 | 参数错误 |
+| 401 | 未登录或登录过期 |
+| 403 | 无权限 |
+| 404 | 资源不存在 |
+| 500 | 系统异常 |
+| 1001 | 账号或密码错误 |
+| 1002 | Refresh Token 失效 |
+| 1003 | 当前代码中用于账号禁用 |
 
-## 权限模型
+当前 `GlobalExceptionHandler` 对业务异常返回统一 JSON，但没有统一设置对应 HTTP 状态，因此一部分业务失败仍可能是 HTTP 200 + 非零业务 code；JWT Filter 则会直接返回 HTTP 401。前端请求层同时处理了 HTTP 401 和业务 `code=401`。
 
-用户通过 `sys_user_role` 关联角色，角色通过 `sys_role_menu` 关联菜单和按钮权限。加载用户时：
+如果未来统一 REST 语义，建议让异常处理器返回对应 `ResponseEntity`，同时确认前端拦截器不会重复提示。
 
-- 角色标识转换为 `ROLE_<roleKey>` 权限；
-- 菜单记录中的非空 `permission` 原样转换为权限；
-- `@EnableMethodSecurity` 已启用，可在业务方法上增加 `@PreAuthorize`。
+## 13. 如何新增一个后端业务模块
 
-示例：
+以“题目分类”为例，推荐按以下顺序开发。
+
+### 第一步：确认表和接口模型
+
+先明确：
+
+- 数据库表字段；
+- 列表查询条件和分页；
+- 新增/编辑的必填规则；
+- 删除约束；
+- 需要哪些权限字符串。
+
+不要直接把数据库 Entity 暴露为所有接口的请求和响应。复杂模块建议分别建立：
+
+```text
+Category                 # 数据库实体
+CategoryQueryRequest     # 查询条件
+CategorySaveRequest      # 新增/编辑参数
+CategoryVO               # 返回前端的数据
+```
+
+### 第二步：Entity 和 Mapper
 
 ```java
-@PreAuthorize("hasAuthority('system:user:list')")
-public Result<?> listUsers() {
-    // ...
+@TableName("interview_category")
+public class Category {
+    @TableId(type = IdType.AUTO)
+    private Long id;
+    private String name;
+    private Integer status;
+}
+
+@Mapper
+public interface CategoryMapper extends BaseMapper<Category> {
 }
 ```
 
-前端隐藏菜单或按钮不能代替后端校验。新增敏感接口时，必须同时增加方法级权限控制，并为角色分配对应权限记录。
+简单单表操作可使用 MyBatis-Plus；多表查询、权限过滤或复杂统计可以写明确 SQL。
 
-## 关键配置
+### 第三步：Service
 
-推荐配置结构：
+```java
+@Service
+@RequiredArgsConstructor
+public class CategoryService {
+    private final CategoryMapper categoryMapper;
 
-```yaml
-jwt:
-  secret: ${JWT_SECRET}
-  access-token-expire-minutes: 15
-
-auth:
-  access-token-expire-minutes: 15
-  refresh-token-expire-hours: 8
-  remember-me-refresh-token-expire-days: 14
-  refresh-token-cookie-name: refresh_token
-  device-id-cookie-name: device_id
-  refresh-token-cookie-path: /
-  cookie-secure: false
-  cookie-same-site: Lax
-  refresh-reuse-grace-seconds: 5
+    @Transactional
+    public Long create(CategorySaveRequest request) {
+        // 参数校验、唯一性检查、构造实体、insert
+        return id;
+    }
+}
 ```
 
-JWT 的过期时间由 `jwt.access-token-expire-minutes` 控制；登录响应中的 `expiresIn` 由 `auth.access-token-expire-minutes` 计算。两项应保持一致，避免客户端显示的有效期与实际 JWT 不一致。
+业务规则、事务和跨 Mapper 协作放在 Service，不放进 Controller。
 
-生产环境至少应做到：
+### 第四步：Controller 和权限
 
-- 使用足够长的随机 JWT Secret，不能保留默认值；
-- 全站 HTTPS，并将 `cookie-secure` 设为 `true`；
-- 根据真实部署域名检查 Cookie Path 与 SameSite；
-- 数据库、Redis 和加密主密码通过安全的外部配置注入；
-- 限制跨域来源，并重新评估 Cookie 刷新接口的 CSRF 防护；
-- 不向仓库提交 `.jasypt.password`、明文密码或生产连接信息。
+```java
+@RestController
+@RequestMapping("/interview/category")
+@RequiredArgsConstructor
+public class CategoryController {
+    private final CategoryService categoryService;
 
-## 扩展业务模块
+    @GetMapping("/list")
+    @PreAuthorize("hasAuthority('interview:category:list')")
+    public Result<List<CategoryVO>> list() {
+        return Result.success(categoryService.list());
+    }
+}
+```
 
-新增业务时建议保持以下分层：
+建议权限粒度：
 
 ```text
-业务模块/
-├─ controller/     # 参数接收、鉴权注解、统一响应
-├─ service/        # 业务规则与事务
-├─ mapper/         # 数据访问
-└─ entity/         # 实体、请求对象和响应对象
+interview:category:list
+interview:category:create
+interview:category:update
+interview:category:delete
 ```
 
-新增接口的一般步骤：
+### 第五步：菜单和授权
 
-1. 建立实体和 Mapper；
-2. 在 Service 中实现业务规则；
-3. Controller 返回统一 `Result`；
-4. 为敏感方法添加 `@PreAuthorize`；
-5. 在菜单/权限数据中增加权限标识并授权角色；
-6. 补充正常、未登录、无权限和异常场景测试；
-7. 与前端约定菜单 `component`、路由 `path` 和权限字符串。
+在 `sys_menu` 中配置目录/页面/按钮权限，并通过 `sys_role_menu` 授权给角色。前端页面 `component` 必须与实际页面目录匹配。
 
-## 常见问题
+### 第六步：验证完整链路
 
-### 启动时报 Jasypt 解密失败
+至少验证：
 
-确认提供了正确的 Jasypt 主密码，并且密文由同一算法和主密码生成。不要把主密码直接写入仓库。
+1. 未携带 Token 返回未认证；
+2. 有 Token 但无 Authority 时不能调用；
+3. 管理员和普通角色得到不同菜单；
+4. 参数错误返回清晰业务消息；
+5. 新增、修改、删除的事务和约束正确；
+6. 前端刷新后动态路由仍能加载页面。
 
-### 登录成功但访问接口返回 401
+## 14. 开发约定
 
-检查请求头是否为 `Authorization: Bearer <access-token>`，再检查 JWT Secret、Redis Token Version、黑名单和用户状态。
+- 不在 Controller 中直接编写复杂 SQL 或事务；
+- 密码只保存 BCrypt 密文，日志中禁止输出密码和 Token；
+- Refresh Token 原文只存在于 Cookie 和当前请求内，Redis 保存哈希；
+- 新接口默认需要认证，只有确实公开的接口才加入 permit list；
+- 页面按钮权限与后端 `@PreAuthorize` 使用同一权限字符串；
+- 删除操作先检查子数据、引用关系和权限；
+- 统一抛 `BusinessException` 表达可预期业务失败；
+- 配置密钥使用环境变量或安全配置中心，不提交明文；
+- 提交前至少执行 `mvn test` 和 `mvn clean package`。
 
-### 刷新接口一直返回 401 或 1002
+## 15. 常见问题
 
-检查浏览器是否携带 Refresh Token Cookie、Cookie Path 是否覆盖 `/auth/refresh`、Redis 会话和哈希索引是否仍在，以及前后端网关是否转发 `Set-Cookie` 和 `Cookie`。
+### 启动时报数据库或 Redis password 无法绑定
 
-### 普通用户没有菜单
+优先检查 Jasypt 解密密钥是否被启动进程读到。IDE、终端和打包后的 Jar 是三个不同运行环境，不要假设它们共享环境变量或 classpath 文件。
 
-检查用户是否关联启用角色、角色是否关联启用菜单，以及关系表中的 ID 是否正确。管理员的角色标识必须精确为 `admin` 才会读取全部启用菜单。
+### JWT 报 WeakKeyException
 
-### 修改了 Access Token 有效期但前端显示不一致
+JWT HMAC 密钥字节数过短。使用至少 32 字节的随机密钥，并保证签发与验签使用同一值。
 
-同时检查 `jwt.access-token-expire-minutes` 和 `auth.access-token-expire-minutes`，两项应设置为相同值。
+### 账号密码确定正确但仍提示错误
+
+检查：
+
+- 数据库密码是否为完整 BCrypt 密文；
+- 字段是否被截断，常见 BCrypt 字符串长度为 60；
+- 用户 `status` 是否为启用；
+- 使用的是 `matches(明文, 密文)`，而不是再次 encode 后字符串相等比较；
+- 前端实际提交的用户名、密码是否有空格或大小写差异。
+
+### 登录后访问接口仍是 401
+
+检查 Authorization 是否为 `Bearer <token>`、JWT 密钥是否一致、Token 是否过期、jti 是否在黑名单、用户 Token 版本是否变化，以及 Redis 是否可用。
+
+### Access Token 过期后无法刷新
+
+检查浏览器是否携带 Refresh Cookie、Cookie Path 是否覆盖 `/auth/refresh`、Redis 会话与 Refresh 索引是否存在，以及代理是否保留 Cookie。
+
+### 管理员菜单正常，普通用户没有菜单
+
+检查 `sys_user_role`、角色状态、`sys_role_menu`、菜单状态。普通用户查询依赖完整的两张关联表；管理员角色标识必须与代码判断使用的 `admin` 一致。
+
+### 菜单返回了但前端显示 404
+
+后端重点检查 `path` 和 `component`。`path` 决定 URL，`component` 决定前端页面文件，两者不能混用。
+
+## 16. 当前实现需要留意的技术债
+
+- 配置中 JWT 有效期同时存在于 `jwt` 和 `auth` 两组属性：JWT 实际过期时间使用前者，响应 `expiresIn` 使用后者；两者必须保持一致，后续建议合并为单一来源；
+- 当前配置键 `remember-me-ref resh-token-expire-days` 中疑似混入空格，无法正常绑定；由于 Java 配置类有默认值，当前可能不易察觉，建议后续修正为 `remember-me-refresh-token-expire-days`；
+- Controller 读取 Refresh Cookie 时使用了固定名称，而写 Cookie 使用可配置名称；若修改 Cookie 名称，需要同步调整读取方式，后续可统一通过请求工具方法读取；
+- Refresh Rotation 的宽限标记当前主要用于识别旧 Token，尚未实现更完整的 Token 重用攻击处置策略；
+- 每次 JWT 请求都会重新查询用户角色权限，安全状态更新及时，但数据库压力较大；后续可根据一致性要求引入短期缓存；
+- 菜单新增、修改、删除当前共用 `system:menu:list`，建议拆分权限；
+- 全局异常处理尚未统一 HTTP 状态；
+- 配置文件仍包含具体环境连接信息，开源前应改为环境变量占位和示例配置。
+
+这些问题建议逐项重构，并为登录、刷新、登出、普通用户菜单和菜单 CRUD 增加集成测试后再调整核心认证流程。

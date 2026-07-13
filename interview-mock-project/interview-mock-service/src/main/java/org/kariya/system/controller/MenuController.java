@@ -25,7 +25,7 @@ public class MenuController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("hasRole('admin') or hasAuthority('system:menu:list')")
+    @PreAuthorize("hasRole('admin') or hasAuthority('system:menu:list') or hasAuthority('system:role:grant')")
     public Result<List<MenuVO>> getMenuList() {
         return Result.success(menuService.getMenuTree());
     }
